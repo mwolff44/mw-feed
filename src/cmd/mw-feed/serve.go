@@ -11,11 +11,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/mwolff44/mw-feed/internal/auth"
 	"github.com/mwolff44/mw-feed/internal/config"
+	"github.com/mwolff44/mw-feed/internal/feed"
+	"github.com/mwolff44/mw-feed/internal/fetch"
+	"github.com/mwolff44/mw-feed/internal/scheduler"
 	"github.com/mwolff44/mw-feed/internal/store"
 	"github.com/mwolff44/mw-feed/internal/web"
 )
@@ -46,6 +50,18 @@ func runServe(args []string, stderr io.Writer) int {
 	}
 	defer func() { _ = st.Close() }()
 
+	// The scheduler keeps feeds up to date in the background. On shutdown its
+	// context is canceled (which aborts the downloads in progress), and we wait
+	// for it to return before the store is closed.
+	feeds := feed.NewService(st, fetch.New(fetch.Options{AllowPrivate: cfg.AllowPrivate}), systemClock{})
+	var background sync.WaitGroup
+	background.Add(1)
+	go func() {
+		defer background.Done()
+		scheduler.New(feeds, scheduler.WithLogger(logger)).Run(ctx)
+	}()
+	defer background.Wait()
+
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           web.NewHandler(web.Options{TrustProxy: cfg.TrustProxy}, st, auth.NewService(st, systemClock{})),
@@ -58,6 +74,7 @@ func runServe(args []string, stderr io.Writer) int {
 	select {
 	case err := <-failed:
 		logger.Error("server stopped", "error", err)
+		stop() // also stops the scheduler
 		return 1
 	case <-ctx.Done():
 	}

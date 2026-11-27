@@ -37,11 +37,18 @@ type Service struct {
 	store   *store.Store
 	fetcher Fetcher
 	clock   Clock
+	// slots bounds the feed updates running at the same time, whoever asks.
+	slots chan struct{}
+	// locks keep two updates of the same feed from running together.
+	locks feedLocks
 }
+
+// maxConcurrentUpdates is the number of feed updates that may run at once.
+const maxConcurrentUpdates = 4
 
 // NewService returns a Service.
 func NewService(st *store.Store, f Fetcher, clock Clock) *Service {
-	return &Service{store: st, fetcher: f, clock: clock}
+	return &Service{store: st, fetcher: f, clock: clock, slots: make(chan struct{}, maxConcurrentUpdates)}
 }
 
 // AddFeedRequest is the input of AddFeed.
