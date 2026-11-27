@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/mwolff44/mw-feed/internal/auth"
+	"github.com/mwolff44/mw-feed/internal/feed"
+	"github.com/mwolff44/mw-feed/internal/fetch"
 	"github.com/mwolff44/mw-feed/internal/store"
 	"github.com/mwolff44/mw-feed/internal/web"
 )
@@ -29,6 +31,8 @@ type app struct {
 	server *httptest.Server
 	client *http.Client
 	clock  *fakeClock
+	store  *store.Store
+	feeds  *feed.Service
 }
 
 func newApp(t *testing.T, opts web.Options) *app {
@@ -39,7 +43,8 @@ func newApp(t *testing.T, opts web.Options) *app {
 	}
 	t.Cleanup(func() { _ = st.Close() })
 	clock := &fakeClock{now: time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)}
-	srv := httptest.NewServer(web.NewHandler(opts, st, auth.NewService(st, clock)))
+	feeds := feed.NewService(st, fetch.New(fetch.Options{AllowPrivate: true}), clock) // fake feed servers are on loopback
+	srv := httptest.NewServer(web.NewHandler(opts, st, auth.NewService(st, clock), feeds))
 	t.Cleanup(srv.Close)
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -49,7 +54,7 @@ func newApp(t *testing.T, opts web.Options) *app {
 		Jar:           jar,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
 	}
-	return &app{server: srv, client: client, clock: clock}
+	return &app{server: srv, client: client, clock: clock, store: st, feeds: feeds}
 }
 
 func (a *app) get(t *testing.T, path string) *http.Response {
@@ -270,21 +275,6 @@ func TestProtectedPagesRedirectToLoginWithoutASession(t *testing.T) {
 	}
 }
 
-func TestHomePageShowsTitleAndAccountActions(t *testing.T) {
-	a := newApp(t, web.Options{})
-	a.install(t)
-
-	resp := a.get(t, "/")
-	page := body(t, resp)
-
-	for _, want := range []string{"<h1>mw-feed</h1>", `href="/password"`, `action="/logout"`} {
-		if !strings.Contains(page, want) {
-			t.Errorf("home page does not contain %q", want)
-		}
-	}
-	_ = csrfToken(t, page)
-}
-
 func TestLoginPageShowsFormWithCSRFTokenAndAnonymousSession(t *testing.T) {
 	a := newApp(t, web.Options{})
 	a.install(t)
@@ -481,7 +471,7 @@ func TestSessionCookieIsSecureOnlyOverHTTPS(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = st.Close() })
 			clock := &fakeClock{now: time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)}
-			h := web.NewHandler(web.Options{TrustProxy: tc.trustProxy}, st, auth.NewService(st, clock))
+			h := web.NewHandler(web.Options{TrustProxy: tc.trustProxy}, st, auth.NewService(st, clock), feed.NewService(st, fetch.New(fetch.Options{}), clock))
 			req := httptest.NewRequest(http.MethodGet, "/install", nil)
 			if tc.tls {
 				req.TLS = &tls.ConnectionState{}
@@ -644,5 +634,25 @@ func TestLoginPageRedirectsAnAlreadyLoggedInUserToHome(t *testing.T) {
 
 	if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != "/" {
 		t.Errorf("GET /login when logged in = %d → %q, want 303 → /", resp.StatusCode, resp.Header.Get("Location"))
+	}
+}
+
+func TestFlashMessageIsShownOnceToTheSessionThatTriggeredIt(t *testing.T) {
+	a := newApp(t, web.Options{})
+	a.install(t)
+	other, csrfLogin := a.loginPage(t)
+	if resp := other.post(t, "/login", loginForm(csrfLogin, testLogin, testPassword)); resp.StatusCode != http.StatusSeeOther {
+		t.Fatalf("second login: %d", resp.StatusCode)
+	}
+	token := csrfToken(t, body(t, a.get(t, "/password")))
+
+	a.post(t, "/password", passwordForm(token, testPassword, newPassword, newPassword))
+
+	first := body(t, a.get(t, "/"))
+	if !strings.Contains(first, `<p class="flash" role="status">Password changed.</p>`) {
+		t.Errorf("first page after the change has no success message:\n%s", first)
+	}
+	if again := body(t, a.get(t, "/")); strings.Contains(again, "Password changed.") {
+		t.Error("the message was shown a second time")
 	}
 }

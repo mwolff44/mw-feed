@@ -62,7 +62,10 @@ type AddFeedRequest struct {
 
 // AddFeed downloads and subscribes to a feed, then imports its items.
 func (s *Service) AddFeed(ctx context.Context, req AddFeedRequest) (Feed, error) {
-	req.URL = strings.TrimSpace(req.URL)
+	req.URL = httpURL(req.URL)
+	if req.URL == "" {
+		return Feed{}, ErrInvalidURL
+	}
 	if _, err := s.store.FeedByXMLURL(ctx, req.URL); err == nil {
 		return Feed{}, ErrDuplicateFeed
 	} else if !errors.Is(err, store.ErrNotFound) {

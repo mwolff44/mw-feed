@@ -17,6 +17,7 @@ import (
 
 	"github.com/mwolff44/mw-feed/internal/auth"
 	"github.com/mwolff44/mw-feed/internal/config"
+	"github.com/mwolff44/mw-feed/internal/favicon"
 	"github.com/mwolff44/mw-feed/internal/feed"
 	"github.com/mwolff44/mw-feed/internal/fetch"
 	"github.com/mwolff44/mw-feed/internal/scheduler"
@@ -54,6 +55,9 @@ func runServe(args []string, stderr io.Writer) int {
 	// context is canceled (which aborts the downloads in progress), and we wait
 	// for it to return before the store is closed.
 	feeds := feed.NewService(st, fetch.New(fetch.Options{AllowPrivate: cfg.AllowPrivate}), systemClock{})
+	// Icons come from a third-party service only: never from the feed's own host,
+	// so this downloader keeps the address restrictions whatever the allow-private option says.
+	icons := favicon.NewService(st, fetch.New(fetch.Options{MaxBytes: favicon.MaxSize, Timeout: favicon.Timeout}), systemClock{})
 	var background sync.WaitGroup
 	background.Add(1)
 	go func() {
@@ -64,7 +68,7 @@ func runServe(args []string, stderr io.Writer) int {
 
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           web.NewHandler(web.Options{TrustProxy: cfg.TrustProxy}, st, auth.NewService(st, systemClock{})),
+		Handler:           web.NewHandler(web.Options{TrustProxy: cfg.TrustProxy, Version: version, Icons: icons}, st, auth.NewService(st, systemClock{}), feeds),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	failed := make(chan error, 1)

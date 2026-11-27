@@ -1,14 +1,29 @@
 {{define "head"}}<!doctype html>
-<html lang="{{.Locale}}">
+<html lang="{{.Locale}}" data-theme="{{.Theme}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.PageTitle}}</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+{{if .Menu}}<header class="top">
+<a class="brand" href="/">{{.Title}}</a>
+<nav class="menu">
+{{if .Reading}}{{template "reading-menu" .}}{{end}}<a href="/config">{{.T "menu.config"}}</a>
+<a href="/help">{{.T "menu.help"}}</a>
+<form method="post" action="/logout">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<button type="submit">{{.T "home.logout"}}</button>
+</form>
+</nav>
+</header>
+{{end}}{{with .Flash}}<p class="flash{{if .Error}} error{{end}}" role="{{if .Error}}alert{{else}}status{{end}}">{{.Text}}</p>
+{{end}}<main>
 {{end}}
 
-{{define "foot"}}</body>
+{{define "foot"}}</main>
+</body>
 </html>
 {{end}}
 
@@ -22,17 +37,6 @@
 <p><label>{{.T "install.password_confirm"}} <input type="password" name="password_confirm" required autocomplete="new-password"></label></p>
 <p><button type="submit">{{.T "install.submit"}}</button></p>
 </form>
-{{template "foot" .}}{{end}}
-
-{{define "home"}}{{template "head" .}}
-<h1>{{.Title}}</h1>
-<nav>
-<a href="/password">{{.T "home.password"}}</a>
-<form method="post" action="/logout">
-<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
-<button type="submit">{{.T "home.logout"}}</button>
-</form>
-</nav>
 {{template "foot" .}}{{end}}
 
 {{define "login"}}{{template "head" .}}
@@ -57,4 +61,28 @@
 <p><label>{{.T "password.new_confirm"}} <input type="password" name="new_password_confirm" required autocomplete="new-password"></label></p>
 <p><button type="submit">{{.T "password.submit"}}</button> <a href="/">{{.T "password.back"}}</a></p>
 </form>
+{{template "foot" .}}{{end}}
+
+{{define "notfound"}}{{template "head" .}}
+<h1>{{.T "notfound.title"}}</h1>
+<p>{{.T "notfound.message"}}</p>
+<p><a href="/">{{.T "error.back_home"}}</a></p>
+{{template "foot" .}}{{end}}
+
+{{define "forbidden"}}{{template "head" .}}
+<h1>{{.T "forbidden.title"}}</h1>
+<p>{{.T "forbidden.message"}}</p>
+<p><a href="/">{{.T "error.back_home"}}</a></p>
+{{template "foot" .}}{{end}}
+
+{{define "internal"}}{{template "head" .}}
+<h1>{{.T "internal.title"}}</h1>
+<p>{{.T "internal.message"}}</p>
+<p><a href="/">{{.T "error.back_home"}}</a></p>
+{{template "foot" .}}{{end}}
+
+{{define "badrequest"}}{{template "head" .}}
+<h1>{{.T "badrequest.title"}}</h1>
+<p>{{.T "badrequest.message"}}</p>
+<p><a href="/">{{.T "error.back_home"}}</a></p>
 {{template "foot" .}}{{end}}

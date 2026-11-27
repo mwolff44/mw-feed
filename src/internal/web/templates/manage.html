@@ -1,0 +1,224 @@
+{{define "add"}}{{template "head" .}}
+<h1>{{.T "add.title"}}</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<form method="post" action="/add">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<p><label>{{.T "add.url"}} <input type="text" name="url" value="{{.Add.URL}}" required autofocus></label></p>
+{{if .Add.Folders}}<fieldset>
+<legend>{{.T "add.folders"}}</legend>
+{{range .Add.Folders}}<label><input type="checkbox" name="folder" value="{{.ID}}"{{if .Checked}} checked{{end}}> {{.Title}}</label>
+{{end}}</fieldset>
+{{end}}<p><label>{{.T "add.new_folder"}} <input type="text" name="new_folder" value="{{.Add.NewFolder}}"></label></p>
+<p><button type="submit">{{.T "add.submit"}}</button></p>
+</form>
+{{template "foot" .}}{{end}}
+
+{{define "folder"}}{{template "head" .}}
+<h1>{{.T "folder.title"}}</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+<form method="post" action="/edit/folder/{{.Folder.ID}}">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<p><label>{{.T "folder.title"}} <input type="text" name="title" value="{{.Folder.Title}}" autofocus></label>
+<small>{{.T "folder.help"}}</small></p>
+<p><button type="submit">{{.T "folder.save"}}</button> <a href="/folder/{{.Folder.ID}}">{{.T "folder.cancel"}}</a></p>
+</form>
+{{template "foot" .}}{{end}}
+
+{{define "edit_feed"}}{{template "head" .}}
+<h1>{{.T "edit_feed.title"}}</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{with .EditFeed}}<form method="post" action="/edit/feed/{{.ID}}">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<p><label>{{$.T "edit_feed.feed_title"}} <input type="text" name="title" value="{{.Title}}" required></label></p>
+<p><label>{{$.T "edit_feed.xml_url"}} <input type="text" name="xml_url" value="{{.XMLURL}}" required></label></p>
+<p><label>{{$.T "edit_feed.site_url"}} <input type="text" name="site_url" value="{{.SiteURL}}"></label></p>
+<p><label>{{$.T "edit_feed.description"}} <input type="text" name="description" value="{{.Description}}"></label></p>
+{{if .Folders}}<fieldset>
+<legend>{{$.T "edit_feed.folders"}}</legend>
+{{range .Folders}}<label><input type="checkbox" name="folder" value="{{.ID}}"{{if .Checked}} checked{{end}}> {{.Title}}</label>
+{{end}}</fieldset>
+{{end}}<p><label>{{$.T "edit_feed.new_folder"}} <input type="text" name="new_folder" value="{{.NewFolder}}"></label></p>
+<p><label>{{$.T "edit_feed.interval"}} <input type="text" inputmode="numeric" name="interval" value="{{.Interval}}"></label>
+<small>{{.IntervalHelp}}</small></p>
+<p>{{$.T "edit_feed.last_update"}}: {{.LastUpdate}}</p>
+{{if .LastError}}<p class="error">{{$.T "edit_feed.last_error"}}: {{.LastError}}</p>
+{{end}}{{if .Warning}}<p>{{$.T "edit_feed.warning"}}: {{.Warning}}</p>
+{{end}}<p><button type="submit">{{$.T "edit_feed.save"}}</button>
+<a href="/feed/{{.ID}}">{{$.T "edit_feed.cancel"}}</a>
+<a href="/edit/feed/{{.ID}}/delete">{{$.T "edit_feed.delete"}}</a></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "delete_feed"}}{{template "head" .}}
+<h1>{{.T "delete_feed.title"}}</h1>
+{{with .EditFeed}}<p>{{$.Format "delete_feed.question" .Title}}</p>
+<p>{{$.T "delete_feed.warning"}}</p>
+<form method="post" action="/edit/feed/{{.ID}}/delete">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<p><button type="submit">{{$.T "edit_feed.delete"}}</button> <a href="/edit/feed/{{.ID}}">{{$.T "edit_feed.cancel"}}</a></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "global"}}{{template "head" .}}
+<h1>{{.T "global.title"}}</h1>
+{{with .Global}}<p><a href="/add">{{$.T "menu.add"}}</a> · <a href="/import">{{$.T "global.import"}}</a> · <a href="/export">{{$.T "global.export"}}</a></p>
+{{if .Folders}}<h2>{{$.T "global.folders"}}</h2>
+<ul class="folders">
+{{range .Folders}}<li><a href="/edit/folder/{{.ID}}">{{.Title}}</a>
+{{if .CanUp}}<form method="post" action="/edit/folder/{{.ID}}/up"><input type="hidden" name="csrf_token" value="{{$.CSRFToken}}"><input type="hidden" name="return" value="/edit"><button type="submit">{{$.T "global.up"}}</button></form>
+{{end}}{{if .CanDown}}<form method="post" action="/edit/folder/{{.ID}}/down"><input type="hidden" name="csrf_token" value="{{$.CSRFToken}}"><input type="hidden" name="return" value="/edit"><button type="submit">{{$.T "global.down"}}</button></form>
+{{end}}</li>
+{{end}}</ul>
+{{end}}<form method="post" action="/edit/feeds">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+{{if .Folders}}<fieldset>
+<legend>{{$.T "global.add_folders"}}</legend>
+{{range .Folders}}<label><input type="checkbox" name="add_folder" value="{{.ID}}"> {{.Title}}</label>
+{{end}}</fieldset>
+<fieldset>
+<legend>{{$.T "global.remove_folders"}}</legend>
+{{range .Folders}}<label><input type="checkbox" name="remove_folder" value="{{.ID}}"> {{.Title}}</label>
+{{end}}</fieldset>
+{{end}}<p><label>{{$.T "global.new_folder"}} <input type="text" name="new_folder"></label></p>
+<fieldset>
+<legend>{{$.T "global.feeds"}}</legend>
+{{range .Feeds}}<label><input type="checkbox" name="feed" value="{{.ID}}"> <a href="/edit/feed/{{.ID}}">{{.Title}}</a></label>
+{{end}}</fieldset>
+<p><button type="submit">{{$.T "global.save"}}</button>
+<button type="submit" formaction="/edit/delete">{{$.T "global.delete"}}</button></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "delete_feeds"}}{{template "head" .}}
+<h1>{{.T "delete_feeds.title"}}</h1>
+<p>{{.T "delete_feeds.question"}}</p>
+{{with .Global}}<ul>
+{{range .Feeds}}<li>{{.Title}}</li>
+{{end}}</ul>
+<p>{{$.T "delete_feed.warning"}}</p>
+<form method="post" action="/edit/delete">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<input type="hidden" name="confirm" value="1">
+{{range .Feeds}}<input type="hidden" name="feed" value="{{.ID}}">
+{{end}}<p><button type="submit">{{$.T "global.delete"}}</button> <a href="/edit">{{$.T "edit_feed.cancel"}}</a></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "import"}}{{template "head" .}}
+<h1>{{.T "import.title"}}</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{with .Import}}<form method="post" action="/import" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<p><label>{{$.T "import.file"}} <input type="file" name="file" accept=".opml,.xml,text/xml,application/xml,text/x-opml" required></label>
+<small>{{$.Format "import.max_size" .MaxSize}}</small></p>
+<p><label><input type="checkbox" name="overwrite" value="1"> {{$.T "import.overwrite"}}</label></p>
+<p><button type="submit">{{$.T "import.submit"}}</button> <a href="/edit">{{$.T "import.cancel"}}</a></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "import_report"}}{{template "head" .}}
+<h1>{{.T "import.report_title"}}</h1>
+{{with .Import}}{{with .Report}}<ul>
+<li>{{$.Format "import.imported" .Imported}}</li>
+<li>{{$.Format "import.updated" .Updated}}</li>
+<li>{{$.Format "import.skipped" .Skipped}}</li>
+<li>{{$.Format "import.rejected" .RejectedCount}}</li>
+<li>{{$.Format "import.folders" .FoldersCreated}}</li>
+</ul>{{end}}
+{{if .Rejected}}<h2>{{$.T "import.rejected_list"}}</h2>
+<ul>
+{{range .Rejected}}<li>{{.}}</li>
+{{end}}</ul>
+{{if .More}}<p>{{.More}}</p>
+{{end}}{{end}}{{end}}
+<form method="post" action="/update">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<input type="hidden" name="kind" value="all">
+<input type="hidden" name="return" value="/edit">
+<button type="submit">{{.T "menu.update_all"}}</button>
+</form>
+<p><a href="/edit">{{.T "import.back"}}</a></p>
+{{template "foot" .}}{{end}}
+
+{{define "config"}}{{template "head" .}}
+<h1>{{.T "config.title"}}</h1>
+{{if .Error}}<p class="error" role="alert">{{.Error}}</p>{{end}}
+{{with .Config}}<form method="post" action="/config">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<fieldset>
+<legend>{{$.T "config.general"}}</legend>
+<p><label>{{$.T "config.reader_title"}} <input type="text" name="title" value="{{.Title}}" required></label></p>
+<p><label>{{$.T "config.language"}} <select name="locale">
+<option value="en"{{if eq .Locale "en"}} selected{{end}}>{{$.T "config.lang_en"}}</option>
+<option value="fr"{{if eq .Locale "fr"}} selected{{end}}>{{$.T "config.lang_fr"}}</option>
+<option value="de"{{if eq .Locale "de"}} selected{{end}}>{{$.T "config.lang_de"}}</option>
+</select></label></p>
+<p><label>{{$.T "config.theme"}} <select name="theme">
+<option value="auto"{{if eq .Theme "auto"}} selected{{end}}>{{$.T "config.theme_auto"}}</option>
+<option value="light"{{if eq .Theme "light"}} selected{{end}}>{{$.T "config.theme_light"}}</option>
+<option value="dark"{{if eq .Theme "dark"}} selected{{end}}>{{$.T "config.theme_dark"}}</option>
+</select></label></p>
+<p><label>{{$.T "config.redirector"}} <input type="text" name="redirector" value="{{.Redirector}}"></label>
+<small>{{$.T "config.redirector_help"}}</small></p>
+</fieldset>
+<fieldset>
+<legend>{{$.T "config.reading"}}</legend>
+<p><label>{{$.T "config.view"}} <select name="view">
+<option value="list"{{if eq .View "list"}} selected{{end}}>{{$.T "config.view_list"}}</option>
+<option value="expanded"{{if eq .View "expanded"}} selected{{end}}>{{$.T "config.view_expanded"}}</option>
+</select></label></p>
+<p><label>{{$.T "config.filter"}} <select name="filter">
+<option value="unread"{{if eq .Filter "unread"}} selected{{end}}>{{$.T "config.filter_unread"}}</option>
+<option value="all"{{if eq .Filter "all"}} selected{{end}}>{{$.T "config.filter_all"}}</option>
+</select></label></p>
+<p><label>{{$.T "config.order"}} <select name="order">
+<option value="newerFirst"{{if eq .Order "newerFirst"}} selected{{end}}>{{$.T "config.order_newer"}}</option>
+<option value="olderFirst"{{if eq .Order "olderFirst"}} selected{{end}}>{{$.T "config.order_older"}}</option>
+</select></label></p>
+<p><label><input type="checkbox" name="list_feeds" value="1"{{if .ListFeeds}} checked{{end}}> {{$.T "config.list_feeds"}}</label></p>
+<p><label>{{$.T "config.by_page"}} <input type="number" name="by_page" value="{{.ByPageText}}" min="1" required></label></p>
+<p><label>{{$.T "config.max_items"}} <input type="number" name="max_items" value="{{.MaxItemsText}}" min="1" required></label>
+<small>{{$.T "config.max_items_help"}}</small></p>
+<p><label>{{$.T "config.max_update"}} <input type="number" name="max_update" value="{{.MaxUpdateText}}" min="1" required></label></p>
+<p><label><input type="checkbox" name="autohide" value="1"{{if .Autohide}} checked{{end}}> {{$.T "config.autohide"}}</label></p>
+<p><label><input type="checkbox" name="add_favicon" value="1"{{if .AddFavicon}} checked{{end}}> {{$.T "config.add_favicon"}}</label><br>
+<small>{{$.T "config.add_favicon_help"}}</small></p>
+<p><label><input type="checkbox" name="blank" value="1"{{if .Blank}} checked{{end}}> {{$.T "config.blank"}}</label></p>
+</fieldset>
+<fieldset>
+<legend>{{$.T "config.js"}}</legend>
+<p><small>{{$.T "config.js_note"}}</small></p>
+<p><label><input type="checkbox" name="autoread_item" value="1"{{if .AutoreadItem}} checked{{end}}> {{$.T "config.autoread_item"}}</label></p>
+<p><label><input type="checkbox" name="autofocus" value="1"{{if .Autofocus}} checked{{end}}> {{$.T "config.autofocus"}}</label></p>
+<p><label><input type="checkbox" name="preload" value="1"{{if .Preload}} checked{{end}}> {{$.T "config.preload"}}</label></p>
+<p><label><input type="checkbox" name="swipe" value="1"{{if .Swipe}} checked{{end}}> {{$.T "config.swipe"}}</label></p>
+</fieldset>
+<p><button type="submit">{{$.T "config.save"}}</button> <a href="/password">{{$.T "config.password"}}</a></p>
+</form>{{end}}
+{{template "foot" .}}{{end}}
+
+{{define "help"}}{{template "head" .}}
+<h1>{{.T "help.title"}}</h1>
+{{with .Help}}<p>{{$.T "help.intro"}}</p>
+<h2>{{$.T "help.shortcuts"}}</h2>
+<p><small>{{$.T "help.shortcuts_note"}}</small></p>
+<fieldset>
+<legend>{{$.T "help.legend"}}</legend>
+<dl class="shortcut"><dt>⎵</dt><dd>{{$.T "help.key_space"}}</dd></dl>
+<dl class="shortcut"><dt>⇧</dt><dd>{{$.T "help.key_shift"}}</dd></dl>
+<dl class="shortcut"><dt>→</dt><dd>{{$.T "help.key_right"}}</dd></dl>
+<dl class="shortcut"><dt>←</dt><dd>{{$.T "help.key_left"}}</dd></dl>
+</fieldset>
+<fieldset>
+<legend>{{$.T "help.group_items"}}</legend>
+{{range .Items}}<dl class="shortcut"><dt>{{.Keys}}</dt><dd>{{$.T .Text}}</dd></dl>
+{{end}}</fieldset>
+<fieldset>
+<legend>{{$.T "help.group_menu"}}</legend>
+{{range .Menu}}<dl class="shortcut"><dt>{{.Keys}}</dt><dd>{{$.T .Text}}</dd></dl>
+{{end}}</fieldset>
+<h2>{{$.T "help.about"}}</h2>
+<p>{{$.Format "help.version" .Version}}</p>
+<p>{{$.T "help.credits_before"}}<a href="https://github.com/tontof/kriss_feed" rel="noreferrer noopener">https://github.com/tontof/kriss_feed</a>{{$.T "help.credits_after"}}</p>
+<p>{{$.T "help.notice"}}</p>{{end}}
+{{template "foot" .}}{{end}}

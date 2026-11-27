@@ -1,0 +1,87 @@
+<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>B-journal</title><style>
+body{margin:0;font-family:system-ui;background:#888}.lbl{padding:.5em 1em;background:#333;color:#fff;font:14px system-ui}
+.pair{display:grid;grid-template-columns:1fr 1fr}@media(max-width:1100px){.pair{grid-template-columns:1fr}}
+.light{--bg:#faf6ee;--fg:#2b2620;--mut:#7a6f60;--bd:#e3dac8;--bar:#f1eadb;--btn:#fffdf8;--link:#8a2c47;--ac:#8a2c47;--sel:#f1e0e5;--code:#efe7d5;--err:#a33a2a;--openbg:#fffdf8;--font:16px system-ui,sans-serif;--rf:Georgia,'Iowan Old Style',serif;--r:3px;--pad:1em;--w:40em}.dark{--bg:#1a1814;--fg:#e8e1d3;--mut:#9a9080;--bd:#34302a;--bar:#221f1a;--btn:#26231e;--link:#8fb0e8;--ac:#8fb0e8;--sel:#222b3a;--code:#26231e;--err:#e58a7a;--openbg:#1f1c17;--font:16px system-ui,sans-serif;--rf:Georgia,'Iowan Old Style',serif;--r:3px;--pad:1em;--w:40em}
+
+.app{min-height:100%;background:var(--bg);color:var(--fg);font:var(--font);line-height:1.5}
+.app a{color:var(--link);text-decoration:none}.app a:hover{text-decoration:underline}
+.app button{font:inherit;color:var(--fg);background:var(--btn);border:1px solid var(--bd);border-radius:var(--r);padding:.25em .7em;cursor:pointer}
+.app button:hover{border-color:var(--ac)}
+.top{display:flex;flex-wrap:wrap;gap:.5em 1em;align-items:center;padding:.6em 1em;background:var(--bar);border-bottom:1px solid var(--bd)}
+.brand{font-weight:700;color:var(--fg)!important}
+.menu{display:flex;flex-wrap:wrap;gap:.3em .9em;align-items:center;font-size:.9em}
+.cols{display:flex;gap:1.5em;padding:1em;align-items:flex-start}
+.feeds{flex:0 0 15em;font-size:.9em}.feeds h2{font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin:0 0 .5em}
+.feeds ul{list-style:none;margin:0;padding:0}.feeds ul ul{padding-left:1em}
+.feeds li{display:flex;flex-wrap:wrap;justify-content:space-between;padding:.15em .4em;border-radius:var(--r)}
+.feeds li>ul{flex-basis:100%}.feeds .cur{background:var(--sel);font-weight:600}
+.n{color:var(--mut);font-variant-numeric:tabular-nums}.feeds .err a{color:var(--err)}
+.items{flex:1;min-width:0;max-width:var(--w)}.items h1{font-size:1.3em;margin:0 0 .7em}.items h1 small{font-weight:400;color:var(--mut);font-size:.65em}
+.item{border-bottom:1px solid var(--bd);padding:var(--pad) 0}.item h3{margin:0;font-size:1em}
+.item.read h3 a{color:var(--mut);font-weight:400}.meta{margin:.1em 0;color:var(--mut);font-size:.82em}
+.acts{display:flex;gap:.5em;margin-top:.4em;font-size:.85em}
+.content{margin:.6em 0;font-family:var(--rf)}.content blockquote{margin:.6em 0;padding-left:.9em;border-left:3px solid var(--ac);color:var(--mut)}
+.content code,.content pre{background:var(--code);border-radius:var(--r);font-family:ui-monospace,monospace;font-size:.88em}.content code{padding:.1em .3em}.content pre{padding:.7em;overflow:auto}
+.item.open{background:var(--openbg);padding-left:.8em;padding-right:.8em;border-left:3px solid var(--ac)}
+.pager{display:flex;gap:1em;justify-content:center;color:var(--mut);padding:1em 0}
+@media(max-width:700px){.cols{flex-direction:column}.feeds{flex-basis:auto;width:100%}}
+</style>
+<div class="lbl"><b>B4-mixte</b> — Journal, clair bordeaux, sombre bleu encre</div>
+<div class="pair"><div class="light"><div class="lbl">clair</div>
+<div class="app">
+<header class="top"><a class="brand" href="#">mw-feed</a>
+<nav class="menu"><a href="#">Vue étendue</a><a href="#">Masquer les flux</a><a href="#">Tout afficher</a><a href="#">Plus anciens d'abord</a><button>Tout marquer lu</button><button>Mettre à jour</button><a href="#">Étoilés</a><a href="#">Éditer</a><a href="#">Aide</a></nav></header>
+<div class="cols">
+<aside class="feeds"><h2>Flux</h2>
+<ul>
+<li class="cur"><a href="#">Tous les éléments</a><span class="n">42</span></li>
+<li class="folder"><a href="#">▾ Technique</a><span class="n">30</span>
+<ul><li><a href="#">Go Blog</a><span class="n">12</span></li><li><a href="#">LWN.net</a><span class="n">18</span></li></ul></li>
+<li class="folder"><a href="#">▾ Actualités</a><span class="n">12</span>
+<ul><li><a href="#">Le Monde</a><span class="n">12</span></li><li class="err"><a href="#">Flux en erreur</a><span class="n">0</span></li></ul></li>
+</ul></aside>
+<main class="items">
+<h1>Tous les éléments <small>42 non lus</small></h1>
+<article class="item"><h3><a href="#">Go 1.27 est disponible</a></h3><p class="meta">Go Blog · il y a 2 h</p>
+<div class="acts"><button>Marquer lu</button><button>☆ Étoiler</button></div></article>
+<article class="item open"><h3><a href="#">Un article ouvert pour juger la lecture</a></h3><p class="meta">LWN.net · hier à 18:04 · par A. Auteur</p>
+<div class="content"><p>Voici un paragraphe de contenu avec un <a href="#">lien</a>, du <code>code en ligne</code> et du texte assez long pour juger la longueur de ligne, l'interligne et le contraste sur plusieurs lignes de lecture continue.</p>
+<blockquote>Une citation pour vérifier le style des blocs.</blockquote>
+<pre>func main() {
+    fmt.Println("bonjour")
+}</pre></div>
+<div class="acts"><button>Marquer non lu</button><button>★ Désétoiler</button></div></article>
+<article class="item read"><h3><a href="#">Un élément déjà lu</a></h3><p class="meta">Le Monde · il y a 3 jours</p>
+<div class="acts"><button>Marquer non lu</button><button>☆ Étoiler</button></div></article>
+<p class="pager"><a href="#">‹ Précédent</a> <span>Page 2 / 5</span> <a href="#">Suivant ›</a></p>
+</main></div></div>
+</div><div class="dark"><div class="lbl">sombre</div>
+<div class="app">
+<header class="top"><a class="brand" href="#">mw-feed</a>
+<nav class="menu"><a href="#">Vue étendue</a><a href="#">Masquer les flux</a><a href="#">Tout afficher</a><a href="#">Plus anciens d'abord</a><button>Tout marquer lu</button><button>Mettre à jour</button><a href="#">Étoilés</a><a href="#">Éditer</a><a href="#">Aide</a></nav></header>
+<div class="cols">
+<aside class="feeds"><h2>Flux</h2>
+<ul>
+<li class="cur"><a href="#">Tous les éléments</a><span class="n">42</span></li>
+<li class="folder"><a href="#">▾ Technique</a><span class="n">30</span>
+<ul><li><a href="#">Go Blog</a><span class="n">12</span></li><li><a href="#">LWN.net</a><span class="n">18</span></li></ul></li>
+<li class="folder"><a href="#">▾ Actualités</a><span class="n">12</span>
+<ul><li><a href="#">Le Monde</a><span class="n">12</span></li><li class="err"><a href="#">Flux en erreur</a><span class="n">0</span></li></ul></li>
+</ul></aside>
+<main class="items">
+<h1>Tous les éléments <small>42 non lus</small></h1>
+<article class="item"><h3><a href="#">Go 1.27 est disponible</a></h3><p class="meta">Go Blog · il y a 2 h</p>
+<div class="acts"><button>Marquer lu</button><button>☆ Étoiler</button></div></article>
+<article class="item open"><h3><a href="#">Un article ouvert pour juger la lecture</a></h3><p class="meta">LWN.net · hier à 18:04 · par A. Auteur</p>
+<div class="content"><p>Voici un paragraphe de contenu avec un <a href="#">lien</a>, du <code>code en ligne</code> et du texte assez long pour juger la longueur de ligne, l'interligne et le contraste sur plusieurs lignes de lecture continue.</p>
+<blockquote>Une citation pour vérifier le style des blocs.</blockquote>
+<pre>func main() {
+    fmt.Println("bonjour")
+}</pre></div>
+<div class="acts"><button>Marquer non lu</button><button>★ Désétoiler</button></div></article>
+<article class="item read"><h3><a href="#">Un élément déjà lu</a></h3><p class="meta">Le Monde · il y a 3 jours</p>
+<div class="acts"><button>Marquer non lu</button><button>☆ Étoiler</button></div></article>
+<p class="pager"><a href="#">‹ Précédent</a> <span>Page 2 / 5</span> <a href="#">Suivant ›</a></p>
+</main></div></div>
+</div></div></html>

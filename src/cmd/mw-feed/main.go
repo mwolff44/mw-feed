@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	_ "time/tzdata" // time zones for TZ in images without a zoneinfo database
 )
 
 var version = "dev"

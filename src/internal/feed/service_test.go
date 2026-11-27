@@ -167,8 +167,8 @@ func TestAddFeedFailuresCreateNothing(t *testing.T) {
 		want   error
 		check  func(t *testing.T, err error)
 	}{
-		{name: "not an http URL", url: func(*env) string { return "ftp://example.org/feed.xml" }, want: fetch.ErrUnsupportedScheme},
-		{name: "empty URL", url: func(*env) string { return "" }, want: fetch.ErrUnsupportedScheme},
+		{name: "not an http URL", url: func(*env) string { return "ftp://example.org/feed.xml" }, want: feed.ErrInvalidURL},
+		{name: "empty URL", url: func(*env) string { return "" }, want: feed.ErrInvalidURL},
 		{name: "document that is not a feed", url: func(e *env) string { return e.server.URL }, serve: "<html><body>Not a feed</body></html>", want: feed.ErrInvalidFeed},
 		{name: "server error", url: func(e *env) string { return e.server.URL }, status: http.StatusInternalServerError,
 			check: func(t *testing.T, err error) {

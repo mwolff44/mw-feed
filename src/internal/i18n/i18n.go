@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 )
 
 const defaultLocale = "en"
@@ -46,4 +47,38 @@ func T(locale, key string) string {
 		return text
 	}
 	return key
+}
+
+var timeLayouts = map[string]string{
+	"en": "2006-01-02 15:04",
+	"fr": "02/01/2006 15:04",
+	"de": "02.01.2006 15:04",
+}
+
+// FormatTime formats t for locale, in the server time zone (time.Local, which
+// follows the TZ variable). The zero time gives an empty string; an unknown
+// locale uses the English format.
+func FormatTime(locale string, t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	layout, ok := timeLayouts[locale]
+	if !ok {
+		layout = timeLayouts[defaultLocale]
+	}
+	return t.In(time.Local).Format(layout)
+}
+
+// N translates a counted text: it picks key+"_one" or key+"_other" by the
+// plural rule of the locale (French treats 0 as singular) and formats n in it.
+func N(locale, key string, n int) string {
+	singular := n == 1
+	if locale == "fr" {
+		singular = n >= 0 && n < 2
+	}
+	form := "_other"
+	if singular {
+		form = "_one"
+	}
+	return fmt.Sprintf(T(locale, key+form), n)
 }

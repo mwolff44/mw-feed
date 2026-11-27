@@ -1,0 +1,103 @@
+{{define "item-actions"}}<div class="actions">
+{{if not .Reading.Starred}}<form method="post" action="/item/{{.ID}}/{{if .Read}}unread{{else}}read{{end}}">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<input type="hidden" name="return" value="{{.Reading.Return}}">
+<button type="submit">{{if .Read}}{{.T "item.mark_unread"}}{{else}}{{.T "item.mark_read"}}{{end}}</button>
+</form>
+{{end}}<form method="post" action="/item/{{.ID}}/{{if .Starred}}unstar{{else}}star{{end}}">
+<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<input type="hidden" name="return" value="{{.Reading.Return}}">
+<button type="submit">{{if .Starred}}{{.T "item.unstar"}}{{else}}{{.T "item.star"}}{{end}}</button>
+</form>
+</div>{{end}}
+
+{{define "item-head"}}<h2><a class="item-link" href="{{.Link.Href}}"{{with .Link.Rel}} rel="{{.}}"{{end}}{{with .Link.Target}} target="{{.}}"{{end}}>{{.Title}}</a></h2>
+<p class="meta">{{.Date}}{{if .Author}} · {{.Author}}{{end}}{{if .Via.Href}} · <a class="item-via" href="{{.Via.Href}}"{{with .Via.Rel}} rel="{{.}}"{{end}}{{with .Via.Target}} target="{{.}}"{{end}}>{{.Source}}</a>{{end}}</p>{{end}}
+
+{{define "icon"}}<img class="favicon" src="{{.}}" width="16" height="16" alt="">{{end}}
+
+{{define "link"}}{{with .Icon}}{{template "icon" .}} {{end}}<a href="{{.URL}}"{{if .Error}} class="error"{{end}}{{if .Tooltip}} title="{{.Tooltip}}"{{end}}{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{if .ShowCount}} <span class="count">{{.Count}}</span>{{end}}{{end}}
+
+{{define "sidebar"}}<nav class="feeds" aria-label="{{.T "feeds.title"}}">
+<ul>
+<li class="all">{{template "link" .All}}</li>
+{{range .Feeds}}<li class="feed">{{template "link" .}}</li>
+{{end}}{{range .Folders}}<li><details class="folder"{{if .Open}} open{{end}}><summary>{{template "link" .}}</summary>
+<ul>
+{{range .Feeds}}<li class="feed">{{template "link" .}}</li>
+{{end}}</ul>
+</details>
+<form class="toggle" method="post" action="/folder/{{.ID}}/toggle">
+<input type="hidden" name="csrf_token" value="{{$.CSRFToken}}">
+<input type="hidden" name="return" value="{{$.Reading.Return}}">
+<button type="submit" title="{{$.T "folder.toggle"}}" aria-label="{{$.T "folder.toggle"}}">{{if .Open}}▾{{else}}▸{{end}}</button>
+</form></li>
+{{end}}</ul>
+</nav>{{end}}
+
+{{define "reading"}}{{template "head" .}}
+<div class="layout">
+{{with .Reading.Sidebar}}{{template "sidebar" (sidebarPage . $)}}
+{{end}}<div class="reading">
+<h1>{{.Reading.Heading}} <small>{{.Reading.Count}}</small></h1>
+{{if .Reading.Empty}}<p class="empty">{{.Reading.Empty}}</p>
+{{end}}<div class="items">
+{{range .Reading.Items}}{{if $.Reading.Expanded}}<article id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}">
+<p class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</p>
+{{template "item-head" .}}
+<div class="content">{{.Content}}</div>
+{{template "item-actions" (actions . $)}}
+</article>
+{{else}}<details id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}"{{if .Open}} open{{end}}>
+<summary><span class="date">{{.Date}}</span> <span class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</span> <span class="title">{{.Title}}</span> <span class="description">{{.Description}}</span></summary>
+<div class="item-body">
+{{template "item-head" .}}
+<div class="content">{{.Content}}</div>
+{{template "item-actions" (actions . $)}}
+</div>
+</details>
+{{end}}{{end}}</div>
+{{with .Reading.Pager}}<p class="pager">{{if .Prev}}<a href="{{.Prev}}">{{$.T "pager.previous"}}</a>{{else}}<span class="disabled">{{$.T "pager.previous"}}</span>{{end}} <span class="current">{{.Page}} / {{.Count}}</span> {{if .Next}}<a href="{{.Next}}">{{$.T "pager.next"}}</a>{{else}}<span class="disabled">{{$.T "pager.next"}}</span>{{end}}</p>
+{{end}}</div>
+</div>
+{{template "foot" .}}{{end}}
+
+{{define "hidden"}}<input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+<input type="hidden" name="return" value="{{.Reading.Return}}">{{end}}
+
+{{define "selection-fields"}}<input type="hidden" name="kind" value="{{.Reading.Kind}}">
+{{if ne .Reading.Kind "all"}}<input type="hidden" name="id" value="{{.Reading.SelectionID}}">
+{{end}}{{end}}
+
+{{define "reading-menu"}}<form method="post" action="/display">
+{{template "hidden" .}}
+{{if eq .Reading.View "expanded"}}<button type="submit" name="view" value="list">{{.T "menu.view_list"}}</button>{{else}}<button type="submit" name="view" value="expanded">{{.T "menu.view_expanded"}}</button>{{end}}
+</form>
+<form method="post" action="/display">
+{{template "hidden" .}}
+{{if .Reading.ListFeeds}}<button type="submit" name="listFeeds" value="hide">{{.T "menu.hide_feeds"}}</button>{{else}}<button type="submit" name="listFeeds" value="show">{{.T "menu.show_feeds"}}</button>{{end}}
+</form>
+{{if not .Reading.Starred}}<form method="post" action="/display">
+{{template "hidden" .}}
+{{if eq .Reading.Filter "unread"}}<button type="submit" name="filter" value="all">{{.T "menu.filter_all"}}</button>{{else}}<button type="submit" name="filter" value="unread">{{.T "menu.filter_unread"}}</button>{{end}}
+</form>
+<form method="post" action="/display">
+{{template "hidden" .}}
+{{if eq .Reading.Order "newerFirst"}}<button type="submit" name="order" value="olderFirst">{{.T "menu.order_older"}}</button>{{else}}<button type="submit" name="order" value="newerFirst">{{.T "menu.order_newer"}}</button>{{end}}
+</form>
+<form method="post" action="/update">
+{{template "hidden" .}}
+{{template "selection-fields" .}}<button type="submit">{{.T (printf "menu.update_%s" .Reading.Kind)}}</button>
+</form>
+<form method="post" action="/mark">
+{{template "hidden" .}}
+{{template "selection-fields" .}}<button type="submit" name="read" value="1">{{.T (printf "menu.read_%s" .Reading.Kind)}}</button>
+</form>
+<form method="post" action="/mark">
+{{template "hidden" .}}
+{{template "selection-fields" .}}<button type="submit" name="read" value="0">{{.T (printf "menu.unread_%s" .Reading.Kind)}}</button>
+</form>
+{{end}}<a href="/add">{{.T "menu.add"}}</a>
+{{if not .Reading.Starred}}<a href="{{.Reading.EditURL}}">{{.T "menu.edit"}}</a>
+{{end}}<a href="{{.Reading.SwitchURL}}">{{if .Reading.Starred}}{{.T "menu.items"}}{{else}}{{.T "menu.starred"}}{{end}}</a>
+{{end}}
