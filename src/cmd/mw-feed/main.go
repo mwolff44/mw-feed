@@ -20,6 +20,9 @@ func run(args []string, stdout, stderr io.Writer) int {
 	if len(args) > 0 && args[0] == "serve" {
 		return runServe(args[1:], stderr)
 	}
+	if len(args) > 0 && args[0] == "healthcheck" {
+		return runHealthcheck(args[1:], stderr)
+	}
 	if len(args) == 1 && args[0] == "version" {
 		_, _ = fmt.Fprintf(stdout, "mw-feed %s\n", version)
 		return 0

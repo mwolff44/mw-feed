@@ -1,0 +1,44 @@
+# Checklist du périmètre fonctionnel (§1.1 du plan)
+
+État à la fin de la phase 9. Légende : ✔ prouvé par des tests automatisés ; ◐ partiellement prouvé (la partie non prouvée est dite) ; ✘ non fait ou non vérifié.
+
+Les noms qui commencent par Test sont des tests Go (`src/`), les fichiers `*.spec.js` des tests de navigateur (`e2e/tests/`, Playwright), `nav.test.js` les tests de logique du script (`e2e/unit/`). `docs/CHECKLIST.md` est contrôlé par `scripts/check-checklist.sh` : chaque test cité doit exister.
+
+| # | Fonctionnalité | État | Preuves | Ce qui n'est pas prouvé |
+|---|----------------|------|---------|-------------------------|
+| 1 | Installation au premier lancement, impossible ensuite | ✔ | `TestInstallCreatesTheOnlyUserOnce`, `TestInstallLogsInAndCannotBeRepeated`, `TestInstallRefusedWithoutAValidCSRFToken`, `TestInstallShowsAnErrorAndCreatesNothingOnInvalidInput`, `TestNotInstalledRedirectsEveryPageToInstall` | |
+| 2 | Connexion, déconnexion, changement de mot de passe, bannissement | ✔ | `TestLoginCreatesAnAuthenticatedSession`, `TestLogoutNeedsCSRFThenEndsTheSession`, `TestChangePasswordRenewsTheSessionAndEndsTheOthers`, `TestFourFailuresBanTheIPEvenForTheRightPassword`, `TestFourFailedLoginsBanTheIPWithAnExplicitMessage`, `TestForwardedForIsUsedForBansOnlyWhenTheProxyIsTrusted`, `TestProtectedPagesRedirectToLoginWithoutASession`, `TestActionsRefuseAVisitorWhoIsNotLoggedInEvenWithAValidToken` | |
+| 3 | Flux : ajout, édition, suppression, dernière mise à jour et erreur | ✔ | `TestAddFeedImportsTheFeedAndItsItems`, `TestAddFeedFailuresCreateNothing`, `TestEditFeedChangesEverythingTheFormEdits`, `TestDeletingAFeedAsksForConfirmationAndKeepsStarredItems`, `TestEditFeedFormShowsTheFeedAndItsState`, `TestFeedListMarksTheCurrentSelectionAndTheFeedErrors`, `TestAddFeedRefusesPrivateAddressesByDefault` | |
+| 4 | Dossiers : création, renommage, suppression, ordre, repli, flux dans plusieurs dossiers | ✔ | `TestCreateFolderTrimsTheTitleAndKeepsCreationOrder`, `TestRenamingAFolderToAnEmptyTitleDeletesIt`, `TestReorderFoldersNeedsEveryFolderExactlyOnce`, `TestToggleFolderCollapsesAndExpands`, `TestAddFeedIntoSeveralFoldersAndANewOne`, `TestFolderButtonsMoveAndCollapseFolders`, `TestEditFolderRenamesDeletesAndRefusesDuplicates` | |
+| 5 | Édition globale : ordre des dossiers, dossiers d'une sélection de flux, liste des flux | ✔ | `TestGlobalEditListsFoldersWithMoveButtonsAndFeedsWithCheckboxes`, `TestGlobalEditChangesTheFoldersOfTheCheckedFeeds`, `TestEditFeedsFoldersAddsThenRemovesOnTheSelectedFeedsOnly`, `TestGlobalDeleteAsksForConfirmationThenDeletesTheCheckedFeeds` | |
+| 6 | Éléments : liste, vue étendue, lecture, lu/non lu (élément, flux, dossier, tout), étoile | ✔ | `TestListViewShowsOneDetailsPerItemAndOpensTheRequestedOne`, `TestExpandedViewShowsEveryItemInFullWithoutDetails`, `TestItemActionsChangeTheItemAndComeBackToThePage`, `TestMarkFormMarksTheWholeSelectionAndSaysHowMany`, `TestMarkReadBySelection`, `TestSetReadAndSetStarredOnOneItem`, `actions.spec.js` | |
+| 7 | Vues : liste/étendue, filtre, ordre, liste des flux, pagination, sélection courante | ✔ | `TestDisplayFormChangesTheSettingsAndComesBack`, `TestListItemsFilterAndOrder`, `TestPaginationShowsPagesAndClampsInvalidOnes`, `TestSelectionsListOnlyTheirItemsAndTitleTheirPage`, `TestFeedListFollowsTheFoldersCollapsedStateAndTheListFeedsSetting`, `TestAutohideHidesFeedsAndFoldersWithoutUnreadItemsExceptTheCurrentOnes` | |
+| 8 | Étoilés : page dédiée, mêmes sélections, conservés si l'élément disparaît du flux | ✔ | `TestStarredPagesListStarredItemsNewestStarFirstWithoutReadButtons`, `TestStarredItemOfADeletedFeedStaysListedUnderAll`, `TestStarredItemsSurviveRetentionAndFeedDeletion`, `TestRetentionNeverDeletesStarredItemsEvenOverTheQuota` | |
+| 9 | Mises à jour : par flux, dossier, tout ; automatiques en arrière-plan | ◐ | À la demande : `TestUpdateFormDownloadsTheSelectionAndReportsTheOutcome`, `TestUpdateSelectionDownloadsEachFeedOfTheSelectionOnceWhateverTheDelay`. En arrière-plan : `TestTickUpdatesOnlyFeedsThatAreStrictlyDue`, `TestRunMakesAFirstPassAtOnceThenOneEveryInterval`, `TestServeUpdatesDueFeedsAtStartup`, `TestAtMostFourFeedsAreUpdatedAtTheSameTime` | Aucun test n'attend un vrai délai : les passes périodiques sont prouvées avec une horloge simulée ; le câblage réel n'est prouvé qu'au démarrage du serveur. |
+| 10 | Import / export OPML, dossiers imbriqués | ✔ | `TestParseFoldersNestingAndDuplicates`, `TestImportOPMLCreatesFeedsAndFoldersWithoutDownloadingAnything`, `TestExportThenImportIntoAnEmptyReaderGivesTheSameFeedsAndFolders`, `TestExportDownloadsAnOPMLFileOfTheFeedsAndFolders`, `TestImportShowsWhyAFileWasRefusedAndImportsNothing`, `TestParseRefusesEntityDeclarations` | Limites connues (phase 6) : les noms d'attributs sont insensibles à la casse, les enfants d'un `<outline>` de flux sont ignorés, un titre qui ressemble à une balise ne fait pas l'aller-retour. |
+| 11 | Configuration | ✔ | `TestConfigSavesEverySettingAndTheCheckboxesThatAreNotChecked`, `TestConfigRefusesWhatIsWrongAndSavesNothing`, `TestSavedSettingsSurviveReopen`, `TestLoadFlagsOverrideEnvironment` | |
+| 12 | Aide : raccourcis et présentation | ✔ | `TestHelpPageHasTheShortcutsAndTheCredits`, `TestEveryLoggedInPageHasConfigurationHelpAndLogoutInItsMenu` | |
+| 13 | Raccourcis clavier (§6.3, sans partage) | ✔ | `nav.test.js` (table de touches), `navigation.spec.js`, `shortcuts.spec.js`, `open-unread.spec.js`, `swipe.spec.js`, `autoread.spec.js`, `autofocus.spec.js` | `Maj+n`/`Maj+p` testés ; le comportement dépend du clavier du navigateur de test (disposition US). |
+| 14 | Favicons | ◐ | `TestIconIsDownloadedOnceFromTheSiteHostThenServedFromTheCache`, `TestContentThatIsNotARasterIconIsRefused`, `TestFailureIsRememberedForADayThenRetried`, `TestFaviconSettingOffServesTheDefaultIconAndAsksNobody`, `TestFaviconSettingOnServesTheDownloadedIconWithItsHeaders`, `TestReadingPagesShowTheFeedIconInTheSidebarAndOnEachItem` | Le service réel n'a été interrogé qu'une fois (hôte `example.org`) : réponse `200` au corps vide, traitée comme un échec (icône par défaut). Le cas d'une vraie image n'a pas été vu. |
+| 15 | Anonymisation des liens (préfixe, `noreferrer`) | ✔ | `TestLinksRewritesOnlyAbsoluteHTTPLinks`, `TestLinkGivesTheAttributesOfOneLink`, `TestLinksOfAnItemFollowTheAnonymisationAndBlankSettings` | |
+| 16 | Précharge | ✘ | Retirée (décision 97) : le rendu serveur met déjà le contenu de tous les éléments de la page dans le HTML ; réglage supprimé, `TestConfigPageHasNoPreloadOption`. | Écart validé avec le propriétaire, pas une fonction manquante. |
+| 17 | Mise en cache du contenu des articles (jusqu'à `maxItems`) | ✔ | `TestAddFeedKeepsTheMaxItemsNewestEvenWhenTheFeedIsSortedOldestFirst`, `TestRetentionQuotaDeletesTheOldestNonStarredItems`, `TestRetentionDeletesReadItemsAbsentFromTheFeedButKeepsUnreadAndStarredOnes`, `TestUpdateUsesConditionalRequestsAndTreats304AsNothingToDo` | |
+
+## Autres exigences vérifiées
+
+| Exigence | État | Preuves |
+|----------|------|---------|
+| CSRF : un `POST` sans jeton est refusé | ✔ | `TestMissingCSRFTokenGivesAStyledForbiddenPage`, `TestItemActionsAreRefusedWithoutCSRFOrForUnknownItems`, `TestActionsRefuseAVisitorWhoIsNotLoggedInEvenWithAValidToken` |
+| En-têtes de sécurité sur chaque type de réponse | ✔ | `TestSecurityHeadersOnEveryKindOfResponse`, `TestStrictTransportSecurityOnlyOverHTTPS` |
+| Contenu des articles assaini | ✔ | `TestHTMLRemovesDangerousConstructs`, `TestParseSanitizesTheWholeContentIncludingEnclosures` |
+| Accès réseau limité (pas d'adresse privée par défaut) | ✔ | `TestFetchBlocksLoopbackByDefaultWithoutReachingTheServer`, `TestFetchChecksTheAddressOfEveryRedirectHop` |
+| Interface utilisable sans JavaScript | ✔ | `nojs.spec.js` |
+| Traductions en/fr/de cohérentes | ✔ | `TestEveryLocaleHasExactlyTheKeysOfEnglish`, `TestEveryKeyUsedByTheWebPackageExistsInEnglish` |
+| Santé du serveur, `healthcheck`, image Docker | ✔ | `TestHealthzAnswersOKToAnyoneEvenBeforeTheInstallation`, `TestHealthcheckFailsWhenTheServerIsUnhealthyOrAbsent` ; conteneur réel : état `healthy`, base conservée après `docker rm` avec un volume, sauvegarde et restauration du README rejouées |
+| Licences tierces livrées | ✔ | `TestEveryLinkedModuleHasItsLicenceTextAndANoticeLine`, `TestGoRuntimeLicenceIsReproduced` ; image : `/licenses/` |
+
+## Non vérifié
+
+* **La CI GitHub Actions n'a jamais été exécutée** (aucun dépôt distant). Le workflow est contrôlé par `actionlint` et ses étapes Docker ont été rejouées à la main.
+* **Le rendu visuel** n'a été regardé que sur des captures (clair, sombre, mobile, page de lecture) ; ni les autres pages ni le thème automatique ne l'ont été.
+* **Les chaînes françaises et allemandes générées** sont listées dans `docs/i18n-review.md` et attendent une relecture humaine.

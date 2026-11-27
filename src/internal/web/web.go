@@ -62,6 +62,7 @@ type server struct {
 func NewHandler(opts Options, st *store.Store, svc *auth.Service, feeds *feed.Service) http.Handler {
 	s := &server{opts: opts, store: st, auth: svc, feeds: feeds}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("GET /install", s.installForm)
 	mux.HandleFunc("POST /install", s.install)
 	mux.HandleFunc("GET /login", s.loginForm)

@@ -4,6 +4,17 @@ on:
   push:
   pull_request:
 
+# Nothing here needs to write to the repository.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the running checks obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Actions are pinned to a full commit SHA (a version tag can be moved); the
+# comment gives the version that the SHA is.
 jobs:
   go:
     runs-on: ubuntu-latest
@@ -11,13 +22,18 @@ jobs:
       run:
         working-directory: src
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: src/go.mod
+      - name: Format
+        run: test -z "$(gofmt -l .)"
       - name: Lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
+          version: v2.14.0
           working-directory: src
       - name: Vet
         run: go vet ./...
@@ -26,13 +42,66 @@ jobs:
       - name: Build without CGO
         run: CGO_ENABLED=0 go build ./...
 
+  e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: e2e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: src/go.mod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+      - name: Script logic
+        run: npm run test:unit
+      - name: Browser tests
+        run: npm test
+      - name: Keep the traces of failed tests
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-traces
+          path: e2e/test-results
+          if-no-files-found: ignore
+
   docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: Build image (no push)
-        uses: docker/build-push-action@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the image (no push)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           push: false
+          load: true
+          tags: mw-feed:ci
+      - name: Start the container
+        run: docker run -d --name mw-feed -p 8080:8080 mw-feed:ci
+      - name: Wait for /healthz
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz; then exit 0; fi
+            sleep 1
+          done
+          docker logs mw-feed
+          exit 1
+      - name: Health check from inside the container
+        run: docker exec mw-feed /mw-feed healthcheck
+      - name: The image declares its health check
+        run: docker inspect --format '{{.Config.Healthcheck.Test}}' mw-feed:ci | grep healthcheck
+      - name: The licence files are shipped
+        run: docker cp mw-feed:/licenses - | tar t | grep THIRD_PARTY_LICENSES.md

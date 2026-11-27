@@ -3,7 +3,8 @@
   "private": true,
   "description": "Browser tests of mw-feed. Development tooling only: nothing here is shipped.",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:unit": "node --test \"unit/*.test.js\""
   },
   "devDependencies": {
     "@playwright/test": "1.65.1"
