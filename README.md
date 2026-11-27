@@ -1,5 +1,7 @@
 # mw-feed
 
+[Français](README.fr.md)
+
 A self-hosted, single-user feed reader written in Go. Single binary, SQLite storage, server-rendered interface.
 
 Status: under development, see [docs/PLAN.md](docs/PLAN.md).

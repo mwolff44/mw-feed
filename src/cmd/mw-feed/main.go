@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 )
 
 var version = "dev"
@@ -19,6 +20,6 @@ func run(args []string, stdout, stderr io.Writer) int {
 		_, _ = fmt.Fprintf(stdout, "mw-feed %s\n", version)
 		return 0
 	}
-	_, _ = fmt.Fprintf(stderr, "mw-feed: unknown command %q\n", args)
+	_, _ = fmt.Fprintf(stderr, "mw-feed: unknown command %q\n", strings.Join(args, " "))
 	return 2
 }

@@ -31,7 +31,7 @@ func TestRunUnknownCommandFailsWithMessageOnStderr(t *testing.T) {
 	if stdout.Len() != 0 {
 		t.Errorf("stdout = %q, want empty", stdout.String())
 	}
-	if stderr.Len() == 0 {
-		t.Errorf("stderr is empty, want an error message")
+	if got, want := stderr.String(), "mw-feed: unknown command \"bogus\"\n"; got != want {
+		t.Errorf("stderr = %q, want %q", got, want)
 	}
 }
