@@ -2,6 +2,13 @@
 
 Textes écrits par l'assistant (absents des fichiers PO du PHP) : à relire par un locuteur. Les libellés repris à l'identique des PO ne sont pas listés. Ce fichier est complété à chaque ajout de clé.
 
+**Relecture du 27 novembre 2026 : validée par le propriétaire, en l'état.** Quatre points avaient été signalés et laissés tels quels, sans correction demandée :
+
+* allemand : « étoile » rendu par « Stern » (actions `item.star`, `item.unstar`) et par « Favoriten » (page, menu, liste vide) ;
+* allemand : `menu.confirm_read` dit « Elemente » là où le reste du fichier dit « Einträge » ;
+* `help.notice` ne cite que `NOTICE` alors que `THIRD_PARTY_LICENSES.md` est aussi livré ;
+* `import.error_too_large` écrit la limite (« 10 MB ») en dur dans le texte.
+
 | Clé | Anglais | Français | Allemand |
 |-----|---------|----------|----------|
 | `install.title` | Install mw-feed | Installer mw-feed | mw-feed installieren |
