@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Runs the whole CI locally before anything leaves the machine, since a pull
+# request needs a push. To skip slow parts on purpose, name them:
+#   CI_LOCAL_SKIP=e2e,docker git push
+set -euo pipefail
+
+exec "$(git rev-parse --show-toplevel)/scripts/ci-local.sh"

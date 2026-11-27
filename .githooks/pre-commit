@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Fast checks on what is about to be committed: no secret, formatted Go code,
+# go vet. The full CI runs before a push (see pre-push). Install with
+# scripts/install-hooks.sh.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks is not installed, so the commit cannot be checked for secrets." >&2
+  echo "Install it (https://github.com/gitleaks/gitleaks#installing) and commit again." >&2
+  exit 1
+fi
+# --redact keeps a found secret out of the terminal and its history.
+gitleaks git --pre-commit --staged --redact --no-banner
+
+mapfile -t go_files < <(git diff --cached --name-only --diff-filter=ACM -- '*.go')
+if [ "${#go_files[@]}" -gt 0 ]; then
+  unformatted="$(gofmt -l "${go_files[@]}")"
+  if [ -n "$unformatted" ]; then
+    echo "pre-commit: these files are not gofmt-formatted (run gofmt -w):" >&2
+    echo "$unformatted" >&2
+    exit 1
+  fi
+  (cd src && go vet ./...)
+fi
