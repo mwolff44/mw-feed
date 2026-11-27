@@ -37,8 +37,21 @@ jobs:
           working-directory: src
       - name: Vet
         run: go vet ./...
-      - name: Test
-        run: go test -race ./...
+      - name: Test (race detector, with coverage)
+        run: go test -race -coverpkg=./... -coverprofile=cover.out ./...
+      - name: Show the coverage
+        run: |
+          ../scripts/coverage.sh --profile cover.out --markdown >> "$GITHUB_STEP_SUMMARY"
+          ../scripts/coverage.sh --profile cover.out --html coverage.html
+      - name: Test the coverage script
+        run: COVER_PROFILE="$PWD/cover.out" ../scripts/test-coverage.sh
+      - name: Keep the coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage
+          path: |
+            src/coverage.html
+            src/cover.out
       - name: Build without CGO
         run: CGO_ENABLED=0 go build ./...
 

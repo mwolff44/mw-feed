@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 # Runs the checks of .github/workflows/ci.yml on this machine: the go, e2e and
-# docker jobs. Keep it in step with that file.
+# docker jobs, and prints the test coverage. Keep it in step with that file.
 #
 #   scripts/ci-local.sh
 #   CI_LOCAL_SKIP=e2e,docker scripts/ci-local.sh   # leave steps out, on purpose
@@ -35,7 +35,8 @@ if step go "go job: format, lint, vet, tests with the race detector, build witho
   if [ -n "$unformatted" ]; then echo "not gofmt-formatted:" >&2; echo "$unformatted" >&2; exit 1; fi
   golangci-lint run ./...
   go vet ./...
-  go test -race -count=1 ./...
+  go test -race -count=1 -coverpkg=./... -coverprofile=cover.out ./...
+  "$root/scripts/coverage.sh" --profile "$PWD/cover.out"
   CGO_ENABLED=0 go build ./...
 fi
 

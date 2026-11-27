@@ -242,6 +242,8 @@ npm test                   # compile le binaire et le pilote dans Chromium
 
 Hooks Git (une fois par clone) : `scripts/install-hooks.sh` active un hook `pre-commit` (gitleaks sur ce que vous indexez, gofmt, `go vet` ; il exige [gitleaks](https://github.com/gitleaks/gitleaks#installing) et refuse le commit sans lui) et un hook `pre-push` qui lance toute la CI sur votre machine (`scripts/ci-local.sh` : vérifications Go, tests de navigateur, image Docker ; il faut Go, golangci-lint, Node et Docker). Pour écarter volontairement les étapes lentes : `CI_LOCAL_SKIP=e2e,docker git push`. `scripts/test-hooks.sh` teste les hooks eux-mêmes.
 
+Couverture des tests : `scripts/coverage.sh` lance les tests et affiche un tableau par paquet et le total (`--html FICHIER` écrit le rapport ligne par ligne). Une ligne est couverte dès qu'un test du module l'exécute. Le même tableau apparaît dans le résumé de chaque exécution de la CI, avec le rapport HTML en artefact. `cmd/mw-feed` paraît bas parce que ses tests lancent le binaire compilé dans un processus séparé, que Go ne sait pas mesurer.
+
 Les décisions de conception, avec leurs raisons, sont dans [docs/PLAN.md](docs/PLAN.md). Les traductions sont dans `src/internal/i18n/locales/` ; les textes français et allemands ajoutés pour ce projet sont listés pour relecture dans [docs/i18n-review.md](docs/i18n-review.md).
 
 <p align="right">(<a href="#readme-top">retour en haut</a>)</p>

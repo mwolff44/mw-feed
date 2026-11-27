@@ -242,6 +242,8 @@ npm test                   # builds the binary and drives it in Chromium
 
 Git hooks (run once per clone): `scripts/install-hooks.sh` turns on a `pre-commit` hook (gitleaks on what you stage, gofmt, `go vet`; it needs [gitleaks](https://github.com/gitleaks/gitleaks#installing) and refuses the commit without it) and a `pre-push` hook that runs the whole CI on your machine (`scripts/ci-local.sh`: Go checks, browser tests, Docker image; it needs Go, golangci-lint, Node and Docker). To leave slow steps out on purpose: `CI_LOCAL_SKIP=e2e,docker git push`. `scripts/test-hooks.sh` tests the hooks themselves.
 
+Test coverage: `scripts/coverage.sh` runs the tests and prints a table per package and the total (`--html FILE` writes the line-by-line report). A line counts as covered when any test of the module runs it. The same table appears in the summary of each CI run, with the HTML report as an artifact. `cmd/mw-feed` looks low because its tests run the compiled binary as a separate process, which Go cannot measure.
+
 The design decisions, with their reasons, are in [docs/PLAN.md](docs/PLAN.md). Translations are in `src/internal/i18n/locales/`; German and French strings added for this project are listed for review in [docs/i18n-review.md](docs/i18n-review.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
