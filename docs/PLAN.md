@@ -40,6 +40,10 @@ Référence fonctionnelle : l'application PHP du dépôt `kriss_feed`, située *
 | 13 | Code source | Tout le code Go est dans `src/`, avec **`go.mod` dans `src/`**. `Dockerfile`, `.github/` et `docs/` restent à la racine. |
 | 14 | Docker | Image finale `gcr.io/distroless/static:nonroot`. Pas de shell : `HEALTHCHECK` via la sous-commande `mw-feed healthcheck` qui interroge `/healthz`. |
 | 15 | Configuration d'exécution | Flags ou variables d'environnement : `MW_FEED_ADDR` (défaut `:8080`), `MW_FEED_DATA`, `MW_FEED_TRUST_PROXY`, `MW_FEED_ALLOW_PRIVATE`. |
+| 16 | Migrations | **Une migration par phase** (une table est créée quand sa phase en a besoin). Mécanisme maison : `PRAGMA user_version` + fichiers `.sql` embarqués, bibliothèque standard seule. Une base de version **plus récente** que le binaire est **refusée** avec une erreur explicite. |
+| 17 | Réglages | `SaveSettings` **valide** les valeurs dans le store et renvoie une erreur sinon : `order` ∈ {newerFirst, olderFirst}, `view` ∈ {list, expanded}, `filter` ∈ {unread, all}, `theme` ∈ {auto, light, dark}, `locale` ∈ {en, fr, de}, `by_page`, `max_items`, `max_update` ≥ 1, sans maximum. |
+| 18 | Configuration d'exécution | Défaut de `MW_FEED_DATA` : `./data` (l'image Docker fixe `/data`). Flags : `-addr`, `-data`, `-trust-proxy`, `-allow-private`. Priorité **flag > variable d'environnement > défaut**. Booléens via `strconv.ParseBool` ; valeur invalide = erreur et refus de démarrer. |
+| 19 | SQLite | Répertoire de données créé par `os.MkdirAll` en `0o750`. Une seule connexion (`SetMaxOpenConns(1)`, lectures comprises). Pas de commande `serve` avant la phase 2. |
 | 12 | Tests | **Bibliothèque standard uniquement** (aucune bibliothèque d'assertions ni de mocks, horloge injectable maison). Unitaires, intégration HTTP (`httptest`, SQLite temporaire, faux serveur de flux), `go vet` + `golangci-lint` + `go test -race`, CI GitHub Actions (tests + build de l'image Docker). Pas de tests de parité avec l'application PHP. |
 
 ---
@@ -76,7 +80,7 @@ Reprises depuis `FeedConf.php` et `config.html`. Défauts PHP entre parenthèses
 
 | Option | Sens | Défaut |
 |--------|------|--------|
-| `title` | Titre du lecteur | `Kriss feed` |
+| `title` | Titre du lecteur | `mw-feed` |
 | `locale` | Langue (en/fr/de) | `en` |
 | `redirector` | Préfixe d'anonymisation des liens, ou `noreferrer` | vide |
 | `maxItems` | Éléments conservés par flux | 100 |
