@@ -51,6 +51,18 @@ Référence fonctionnelle : l'application PHP du dépôt `kriss_feed`, située *
 | 24 | Changement de mot de passe | Supprime toutes les autres sessions ; la session courante reçoit un nouvel identifiant et un nouveau jeton CSRF. |
 | 25 | URLs et cookie | `GET/POST /install`, `GET/POST /login`, `POST /logout`, `GET/POST /password`, `GET /` (page d'accueil provisoire jusqu'à la phase 4). Cookie `mw_feed_session`. `/install` répond 404 une fois installé. Pas de paramètre `?next=`. |
 | 26 | Commande `serve` | `mw-feed serve` démarre le serveur et s'arrête proprement sur `SIGTERM`/`SIGINT` ; `mw-feed` sans argument reste une erreur. |
+| 27 | Périmètre phase 3 | Logique uniquement (téléchargement, parsing, assainissement, service de flux, dossiers), **sans page web** (les pages restent en phase 7). Pour tester la rétention, le service expose dès la phase 3 le strict minimum : marquer **un** élément lu/non lu, étoiler/désétoiler **un** élément, lister les éléments **d'un flux**. La phase 4 construit sélections, filtres, tris, pagination et marquages en masse par-dessus. |
+| 28 | Éléments retenus | Les éléments du flux sont **triés par date décroissante** (tri stable) puis tronqués à `maxItems` (écart volontaire avec le PHP, qui garde l'ordre du flux). |
+| 29 | Normalisation (reprise du PHP, adaptée à gofeed) | Titre vide → lien. Date : publication, sinon mise à jour, sinon date courante. `content` : contenu complet, sinon description/résumé. `description` : description/résumé, sinon contenu, balises retirées puis troncature à 500 caractères Unicode. Lien : lien de l'élément (Atom : `alternate`), sinon GUID **si URL http(s)**, sinon élément ignoré. Pièces jointes : `enclosure` et `media:content` ; miniature : `media:thumbnail` (rendu 4.4). Titre, auteur, description et titre du flux : **texte brut** (balises retirées, entités décodées, espaces normalisés, avant troncature). |
+| 30 | Dossiers | Titre **unique**, comparé après suppression des espaces, **sensible à la casse**. Création ou renommage vers un titre existant : erreur explicite (pas de fusion). « Nouveau dossier » saisi à l'ajout ou à l'édition d'un flux avec un titre existant : le flux est ajouté au dossier existant. Titre vide refusé à la création ; en renommage, titre vide = suppression. Supprimer un dossier ne supprime pas ses flux. |
+| 31 | Édition d'un flux | Titre obligatoire (non vide) ; description effaçable ; URL du site effaçable, http(s) si renseignée. URL XML modifiable : http(s) uniquement, unique parmi les flux, **aucun téléchargement** à la modification, validateurs HTTP effacés. Délai vide/`auto` → automatique ; nombre hors de [5, `maxUpdate`] → automatique sans erreur. La liste de dossiers envoyée remplace l'ancienne. Renommer un flux met à jour `feed_title` de tous ses éléments (pas `author`). |
+| 32 | Ajout et mise à jour | Flux sans titre : **nom d'hôte** de l'URL XML. Une mise à jour ne modifie jamais le titre ; elle remplit description et URL du site **seulement si vides**. `last_update_at` est renseignée à chaque tentative, `last_error` effacée après un succès. |
+| 33 | Avertissement | Colonne `feeds.last_warning` : **clé de traduction** (`items_missed`), indépendante de `last_error`, effacée à la mise à jour suivante où la règle 4.3-5 ne s'applique plus. |
+| 34 | Requêtes conditionnelles | Colonnes `feeds.http_etag` et `feeds.http_last_modified`. Mise à jour **planifiée** : `If-None-Match` / `If-Modified-Since` ; réponse 304 = rien à analyser (`last_update_at` renseignée, `last_error` effacée, éléments et `last_warning` inchangés) ; 200 = analyse puis nouveaux validateurs. Mise à jour **manuelle** et ajout : téléchargement complet sans en-têtes conditionnels. Échec : validateurs inchangés. |
+| 35 | Téléchargement | `User-Agent: mw-feed` (sans version ni URL), aucun autre en-tête. Statuts 2xx seulement ; au-delà de 10 Mo : erreur (pas de troncature) ; 10 redirections maximum, http(s) uniquement, contrôle SSRF à chaque étape ; délai total 30 s ; type de contenu non vérifié. |
+| 36 | SSRF | Bloqués : loopback (`127.0.0.0/8`, `::1`), privées (`10/8`, `172.16/12`, `192.168/16`, `fc00::/7`), lien-local (`169.254/16`, `fe80::/10`), non spécifiée (`0.0.0.0`, `::`), multicast, CGNAT (`100.64/10`) ; IPv6 encapsulant une IPv4 normalisée avant contrôle ; contrôle sur l'**adresse réellement utilisée pour la connexion**. `MW_FEED_ALLOW_PRIVATE` lève toutes les restrictions d'adresse, pas celles de schéma, taille et redirections. |
+| 37 | Assainissement | Une **seule** passe, **à la fin** : contenu du flux + pièces jointes (4.4), puis la politique unique, dérivée de la politique `bluemonday` pour contenu tiers. Autorisés : `img`, `audio`, `video`, `source` (sources http/https) et `iframe` vers `https://www.youtube-nocookie.com/` uniquement. Retirés : scripts, autres `iframe`, `on*`, `javascript:`, styles en ligne. |
+| 38 | Tri des flux | Par titre, **tri naturel insensible à la casse** (comme `strnatcasecmp`), à égalité par identifiant. |
 | 12 | Tests | **Bibliothèque standard uniquement** (aucune bibliothèque d'assertions ni de mocks, horloge injectable maison). Unitaires, intégration HTTP (`httptest`, SQLite temporaire, faux serveur de flux), `go vet` + `golangci-lint` + `go test -race`, CI GitHub Actions (tests + build de l'image Docker). Pas de tests de parité avec l'application PHP. |
 
 ---
@@ -171,7 +183,10 @@ folders(id INTEGER PRIMARY KEY, title TEXT NOT NULL UNIQUE,
         collapsed INTEGER NOT NULL DEFAULT 0)
 feeds(id INTEGER PRIMARY KEY, xml_url TEXT NOT NULL UNIQUE, html_url TEXT, title TEXT NOT NULL, description TEXT,
       update_interval INTEGER,                           -- NULL = auto (maxUpdate), sinon minutes
-      last_update_at INTEGER, last_error TEXT, last_item_time INTEGER)
+      last_update_at INTEGER, last_error TEXT,
+      last_warning TEXT,                                 -- clé de traduction (ex. 'items_missed')
+      http_etag TEXT, http_last_modified TEXT,           -- validateurs de la dernière réponse 200
+      last_item_time INTEGER)
 feed_folders(feed_id INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
              folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
              PRIMARY KEY(feed_id, folder_id))
@@ -215,7 +230,7 @@ Notes :
 - Concurrence bornée (par défaut 4 téléchargements simultanés), timeout HTTP par flux (par défaut 30 s), `User-Agent` générique sans donnée personnelle.
 - Une erreur sur un flux n'arrête pas les autres : enregistrer `last_error`.
 - Même verrou/protection pour qu'une mise à jour manuelle et une mise à jour planifiée du même flux ne s'exécutent pas en parallèle.
-- Mise à jour manuelle : flux, dossier ou tout. Elle ignore le délai (équivalent de `force`).
+- Mise à jour manuelle : flux, dossier ou tout. Elle ignore le délai (équivalent de `force`) et n'envoie pas d'en-têtes conditionnels (décision n° 34).
 
 ### 4.3 Mise à jour d'un flux (reprise de `Feed::updateChannel`)
 1. Télécharger et parser. En cas d'erreur : renseigner `last_error`, conserver les données existantes.
