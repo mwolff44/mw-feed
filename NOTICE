@@ -1,0 +1,13 @@
+mw-feed
+Licensed under GPL-3.0-or-later (see LICENSE).
+
+Credits
+-------
+mw-feed is an independent rewrite of the behaviour of KrISS feed, a PHP
+application created by Tontof (http://tontof.net,
+https://github.com/tontof/kriss_feed). No code or asset from the original
+project is reused.
+
+Third-party dependencies
+------------------------
+None yet.
