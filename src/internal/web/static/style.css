@@ -150,7 +150,7 @@ main:has(.layout) { max-width: none; margin: 0; padding: 0; }
 .pager .disabled { opacity: 0.5; }
 
 @media (max-width: 700px) {
-  .layout { flex-direction: column; }
+  .layout { flex-direction: column; align-items: stretch; }
   .feeds { flex-basis: auto; width: 100%; }
   .item .description { display: none; }
 }
@@ -163,7 +163,8 @@ small { color: var(--mut); }
 .error { color: var(--err); }
 p.error { padding: 0.5em 1em; border: 1px solid var(--err); border-left-width: 3px; border-radius: var(--radius); }
 .feeds li form.toggle { display: inline; margin: 0; }
-.feeds li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+.feeds li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 0.4em; }
+.feeds .count { margin-left: auto; }
 .feeds li > details { flex: 1; }
 .feeds form.toggle button { border: 0; background: transparent; padding: 0 0.3em; min-height: 0; color: var(--mut); }
 .folders { list-style: none; padding: 0; }
@@ -178,3 +179,4 @@ dl.shortcut dd { margin: 0; }
 .menu button { border: 0; background: transparent; padding: 0.2em 0.3em; color: var(--link); }
 .menu button:hover { text-decoration: underline; }
 .favicon { width: 16px; height: 16px; vertical-align: -2px; }
+.item.current { outline: 1px solid var(--ac); outline-offset: 2px; border-radius: var(--radius); }

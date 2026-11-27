@@ -36,7 +36,6 @@ type Settings struct {
 	Autohide     bool
 	Autofocus    bool
 	AddFavicon   bool
-	Preload      bool
 	Blank        bool
 	Swipe        bool
 	Theme        string
@@ -73,10 +72,10 @@ func (s *Store) Settings(ctx context.Context) (Settings, error) {
 	var st Settings
 	err := s.db.QueryRowContext(ctx, `SELECT title, locale, redirector, max_items, max_update,
 		"order", view, filter, list_feeds, by_page, autoread_item, autohide, autofocus,
-		add_favicon, preload, blank, swipe, theme FROM settings WHERE id = 1`).Scan(
+		add_favicon, blank, swipe, theme FROM settings WHERE id = 1`).Scan(
 		&st.Title, &st.Locale, &st.Redirector, &st.MaxItems, &st.MaxUpdate,
 		&st.Order, &st.View, &st.Filter, &st.ListFeeds, &st.ByPage, &st.AutoreadItem,
-		&st.Autohide, &st.Autofocus, &st.AddFavicon, &st.Preload, &st.Blank, &st.Swipe, &st.Theme)
+		&st.Autohide, &st.Autofocus, &st.AddFavicon, &st.Blank, &st.Swipe, &st.Theme)
 	if err != nil {
 		return Settings{}, fmt.Errorf("read settings: %w", err)
 	}
@@ -91,10 +90,10 @@ func (s *Store) SaveSettings(ctx context.Context, st Settings) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE settings SET title = ?, locale = ?, redirector = ?,
 		max_items = ?, max_update = ?, "order" = ?, view = ?, filter = ?, list_feeds = ?,
 		by_page = ?, autoread_item = ?, autohide = ?, autofocus = ?, add_favicon = ?,
-		preload = ?, blank = ?, swipe = ?, theme = ? WHERE id = 1`,
+		blank = ?, swipe = ?, theme = ? WHERE id = 1`,
 		st.Title, st.Locale, st.Redirector, st.MaxItems, st.MaxUpdate, st.Order, st.View,
 		st.Filter, st.ListFeeds, st.ByPage, st.AutoreadItem, st.Autohide, st.Autofocus,
-		st.AddFavicon, st.Preload, st.Blank, st.Swipe, st.Theme)
+		st.AddFavicon, st.Blank, st.Swipe, st.Theme)
 	if err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}

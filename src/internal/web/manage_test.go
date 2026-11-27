@@ -534,9 +534,9 @@ func TestReadingMenuLinksToTheEditPagesOfTheSelectionAndToAddAFeed(t *testing.T)
 	a, alpha, _, tech := twoFeeds(t)
 
 	for path, want := range map[string]string{
-		"/":                               `<a href="/edit">Edit</a>`,
-		fmt.Sprintf("/feed/%d", alpha.ID): fmt.Sprintf(`<a href="/edit/feed/%d">Edit</a>`, alpha.ID),
-		fmt.Sprintf("/folder/%d", tech):   fmt.Sprintf(`<a href="/edit/folder/%d">Edit</a>`, tech),
+		"/":                               `<a data-shortcut="edit" href="/edit">Edit</a>`,
+		fmt.Sprintf("/feed/%d", alpha.ID): fmt.Sprintf(`<a data-shortcut="edit" href="/edit/feed/%d">Edit</a>`, alpha.ID),
+		fmt.Sprintf("/folder/%d", tech):   fmt.Sprintf(`<a data-shortcut="edit" href="/edit/folder/%d">Edit</a>`, tech),
 		"/starred":                        `<a href="/add">Add a feed</a>`,
 		fmt.Sprintf("/feed/%d", alpha.ID) + "?page=1": `<a href="/add">Add a feed</a>`,
 	} {

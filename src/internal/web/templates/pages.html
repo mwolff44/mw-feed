@@ -5,13 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.PageTitle}}</title>
 <link rel="stylesheet" href="/static/style.css">
+<script type="module" src="/static/app.js"></script>
 </head>
 <body>
 {{if .Menu}}<header class="top">
-<a class="brand" href="/">{{.Title}}</a>
+<a class="brand" data-shortcut="home" href="/">{{.Title}}</a>
 <nav class="menu">
 {{if .Reading}}{{template "reading-menu" .}}{{end}}<a href="/config">{{.T "menu.config"}}</a>
-<a href="/help">{{.T "menu.help"}}</a>
+<a data-shortcut="help" href="/help">{{.T "menu.help"}}</a>
 <form method="post" action="/logout">
 <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
 <button type="submit">{{.T "home.logout"}}</button>

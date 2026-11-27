@@ -143,7 +143,6 @@ Textes écrits par l'assistant (absents des fichiers PO du PHP) : à relire par 
 | `config.blank` | Open links in a new tab | Ouvrir les liens dans un nouvel onglet | Links in einem neuen Tab öffnen |
 | `config.autoread_item` | Mark an item as read when moving to the next one | Marquer un élément comme lu en passant au suivant | Eintrag beim Wechsel zum nächsten als gelesen markieren |
 | `config.autofocus` | Scroll to the current item | Aller automatiquement à l'élément courant | Automatisch zum aktuellen Eintrag springen |
-| `config.preload` | Preload the items of the page | Précharger les éléments de la page | Einträge der Seite vorladen |
 | `config.swipe` | Swipe to change item on touch screens | Balayer pour changer d'élément sur écran tactile | Auf Touchscreens wischen, um den Eintrag zu wechseln |
 | `config.error_title` | The title must not be empty. | Le titre ne doit pas être vide. | Der Titel darf nicht leer sein. |
 | `config.error_number` | The numbers of items and minutes must be whole numbers of at least 1. | Les nombres d'éléments et de minutes doivent être des entiers d'au moins 1. | Die Anzahl der Einträge und Minuten muss eine ganze Zahl von mindestens 1 sein. |
@@ -158,3 +157,4 @@ Textes écrits par l'assistant (absents des fichiers PO du PHP) : à relire par 
 | `help.notice` | The third-party components and their licences are listed in the NOTICE file shipped with the program. | Les composants tiers et leurs licences sont listés dans le fichier NOTICE livré avec le programme. | Die Komponenten Dritter und ihre Lizenzen sind in der mit dem Programm gelieferten Datei NOTICE aufgeführt. |
 | `item.source` | Source | Source | Quelle |
 | `config.add_favicon_help` | Icons are fetched from DuckDuckGo, which can then tell which sites you follow. While this is off, no third-party request is made and a default icon is shown. | Les icônes sont récupérées auprès de DuckDuckGo, qui peut alors savoir quels sites vous suivez. Tant que l'option est désactivée, aucune requête n'est faite vers un tiers et une icône par défaut est affichée. | Die Symbole werden bei DuckDuckGo abgerufen, das dadurch erfahren kann, welchen Seiten Sie folgen. Solange die Option deaktiviert ist, wird keine Anfrage an Dritte gestellt und ein Standardsymbol angezeigt. |
+| `menu.confirm_read` | Mark all these items as read? | Marquer tous ces éléments comme lus ? | Alle diese Elemente als gelesen markieren? |

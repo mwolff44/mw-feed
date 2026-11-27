@@ -59,7 +59,7 @@ func (s *server) config(w http.ResponseWriter, r *http.Request) {
 		Redirector: strings.TrimSpace(form.Get("redirector")), View: form.Get("view"), Filter: form.Get("filter"),
 		Order: form.Get("order"), ListFeeds: checked("list_feeds"), Autohide: checked("autohide"),
 		AddFavicon: checked("add_favicon"), Blank: checked("blank"), AutoreadItem: checked("autoread_item"),
-		Autofocus: checked("autofocus"), Preload: checked("preload"), Swipe: checked("swipe"),
+		Autofocus: checked("autofocus"), Swipe: checked("swipe"),
 	}
 	view := &configView{Settings: st, ByPageText: form.Get("by_page"), MaxItemsText: form.Get("max_items"), MaxUpdateText: form.Get("max_update")}
 	refuse := func(key string) {

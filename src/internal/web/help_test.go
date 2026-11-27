@@ -52,7 +52,7 @@ func TestEveryLoggedInPageHasConfigurationHelpAndLogoutInItsMenu(t *testing.T) {
 
 	for _, path := range []string{"/", "/starred", "/edit", "/add", "/config", "/help", "/import", "/password", "/feed/" + itoa(alpha.ID), "/no-such-page"} {
 		page := body(t, a.get(t, path))
-		for _, want := range []string{`<a href="/config">Configuration</a>`, `<a href="/help">Help</a>`, `action="/logout"`} {
+		for _, want := range []string{`<a href="/config">Configuration</a>`, `<a data-shortcut="help" href="/help">Help</a>`, `action="/logout"`} {
 			if !strings.Contains(page, want) {
 				t.Errorf("GET %s: the menu does not contain %q", path, want)
 			}

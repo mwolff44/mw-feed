@@ -3,6 +3,7 @@
 package web
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -47,6 +48,9 @@ type readingView struct {
 	SelectionID         int64
 	View, Order, Filter string
 	ListFeeds           bool
+	Autofocus           bool // the script scrolls the current item into view
+	Swipe               bool // the script moves between items on a finger swipe
+	AutoreadItem        bool // the script marks an item read when moving on to the next one
 	// SwitchURL leads to the same selection among starred items, or back.
 	SwitchURL string
 	// EditURL leads to the edit page of the selection.
@@ -142,7 +146,7 @@ func (s *server) reading(kind string, starred bool) func(http.ResponseWriter, *h
 			return
 		}
 		view := &readingView{Heading: heading, Return: r.URL.RequestURI(), Starred: starred, Sidebar: side,
-			Kind: kind, SelectionID: sel.ID, View: st.View, Order: st.Order, Filter: st.Filter, ListFeeds: st.ListFeeds,
+			Kind: kind, SelectionID: sel.ID, View: st.View, Order: st.Order, Filter: st.Filter, ListFeeds: st.ListFeeds, Autofocus: st.Autofocus, Swipe: st.Swipe, AutoreadItem: st.AutoreadItem,
 			SwitchURL: switchURL(kind, sel.ID, starred), EditURL: editURL(kind, sel.ID)}
 		if starred || st.Filter == feed.FilterAll {
 			view.Count = i18n.N(st.Locale, "reading.items", list.Total)
@@ -160,20 +164,26 @@ func (s *server) reading(kind string, starred bool) func(http.ResponseWriter, *h
 		default:
 			view.Empty = i18n.T(st.Locale, "empty.unread")
 		}
-		links := anonymize.Options{Redirector: st.Redirector, Blank: st.Blank}
 		for _, it := range list.Items {
-			via := anonymize.Attrs{}
-			if it.Via != "" {
-				via = anonymize.Link(it.Via, links)
-			}
-			view.Items = append(view.Items, itemView{
-				ID: it.ID, Title: it.Title, FeedTitle: it.FeedTitle, Icon: iconURL(it.FeedID), Description: it.Description,
-				Date: i18n.FormatTime(st.Locale, it.PublishedAt), Link: anonymize.Link(it.Link, links), Via: via, Source: i18n.T(st.Locale, "item.source"), Author: it.Author,
-				Content: template.HTML(anonymize.Links(it.Content, links)), //nolint:gosec // sanitised once, before storage; the rewrite only touches link attributes
-				Read:    it.Read, Open: it.ID == open, Starred: !it.StarredAt.IsZero(),
-			})
+			view.Items = append(view.Items, newItemView(st, it, it.ID == open))
 		}
 		s.render(w, r, "reading", http.StatusOK, page{CSRFToken: sess.CSRFToken, Reading: view})
+	}
+}
+
+// newItemView prepares an item for display: dates in the locale, links rewritten
+// by the link settings.
+func newItemView(st store.Settings, it feed.Item, open bool) itemView {
+	links := anonymize.Options{Redirector: st.Redirector, Blank: st.Blank}
+	via := anonymize.Attrs{}
+	if it.Via != "" {
+		via = anonymize.Link(it.Via, links)
+	}
+	return itemView{
+		ID: it.ID, Title: it.Title, FeedTitle: it.FeedTitle, Icon: iconURL(it.FeedID), Description: it.Description,
+		Date: i18n.FormatTime(st.Locale, it.PublishedAt), Link: anonymize.Link(it.Link, links), Via: via, Source: i18n.T(st.Locale, "item.source"), Author: it.Author,
+		Content: template.HTML(anonymize.Links(it.Content, links)), //nolint:gosec // sanitised once, before storage; the rewrite only touches link attributes
+		Read:    it.Read, Open: open, Starred: !it.StarredAt.IsZero(),
 	}
 }
 
@@ -244,7 +254,7 @@ func (s *server) itemAction(w http.ResponseWriter, r *http.Request) {
 		s.serverError(w, r, err)
 		return
 	}
-	http.Redirect(w, r, safeReturn(r.PostFormValue("return")), http.StatusSeeOther)
+	http.Redirect(w, r, withOpenItem(safeReturn(r.PostFormValue("return")), id), http.StatusSeeOther)
 }
 
 // actionsView is what the read and star forms of an item need: the item and the page.
@@ -254,6 +264,14 @@ type actionsView struct {
 	Read    bool
 	Starred bool
 }
+
+// itemContext is what the "item" template needs: the item and the page it is on.
+type itemContext struct {
+	Item itemView
+	Page page
+}
+
+func newItemContext(it itemView, p page) itemContext { return itemContext{Item: it, Page: p} }
 
 func newActionsView(it itemView, p page) actionsView {
 	return actionsView{page: p, ID: it.ID, Read: it.Read, Starred: it.Starred}
@@ -417,4 +435,58 @@ func editURL(kind string, id int64) string {
 		return "/edit"
 	}
 	return "/edit/" + kind + "/" + strconv.FormatInt(id, 10)
+}
+
+// itemFragment serves one item, open, as the HTML the list shows for it: the
+// script replaces the item on the page with it after an action. The return
+// parameter is the page the item is on; it tells the starred pages (which have
+// no read buttons) and is the target of the action forms.
+func (s *server) itemFragment(w http.ResponseWriter, r *http.Request, sess auth.Session) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id <= 0 {
+		s.notFound(w, r)
+		return
+	}
+	it, err := s.feeds.Item(r.Context(), id)
+	if errors.Is(err, feed.ErrNotFound) {
+		s.notFound(w, r)
+		return
+	}
+	st, err2 := s.store.Settings(r.Context())
+	if err == nil {
+		err = err2
+	}
+	if err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	ret := safeReturn(r.URL.Query().Get("return"))
+	retPath := ret
+	if i := strings.IndexAny(ret, "?#"); i >= 0 {
+		retPath = ret[:i]
+	}
+	p := page{Locale: st.Locale, CSRFToken: sess.CSRFToken, Reading: &readingView{
+		Expanded: st.View == "expanded", Return: ret, Starred: retPath == "/starred" || strings.HasPrefix(retPath, "/starred/"),
+	}}
+	var out bytes.Buffer
+	if err := templates.ExecuteTemplate(&out, "item", newItemContext(newItemView(st, it, true), p)); err != nil {
+		s.serverError(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(out.Bytes())
+}
+
+// withOpenItem makes a local URL show an item open and scrolled to: it sets the
+// open parameter (replacing any other) and the item anchor. target is safe.
+func withOpenItem(target string, id int64) string {
+	u, err := url.Parse(target)
+	if err != nil {
+		return "/"
+	}
+	q := u.Query()
+	q.Set("open", strconv.FormatInt(id, 10))
+	u.RawQuery = q.Encode()
+	u.Fragment = "item-" + strconv.FormatInt(id, 10)
+	return u.String()
 }

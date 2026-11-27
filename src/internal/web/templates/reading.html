@@ -14,6 +14,22 @@
 {{define "item-head"}}<h2><a class="item-link" href="{{.Link.Href}}"{{with .Link.Rel}} rel="{{.}}"{{end}}{{with .Link.Target}} target="{{.}}"{{end}}>{{.Title}}</a></h2>
 <p class="meta">{{.Date}}{{if .Author}} · {{.Author}}{{end}}{{if .Via.Href}} · <a class="item-via" href="{{.Via.Href}}"{{with .Via.Rel}} rel="{{.}}"{{end}}{{with .Via.Target}} target="{{.}}"{{end}}>{{.Source}}</a>{{end}}</p>{{end}}
 
+{{define "item"}}{{with .Item}}{{if $.Page.Reading.Expanded}}<article id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}">
+<p class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</p>
+{{template "item-head" .}}
+<div class="content">{{.Content}}</div>
+{{template "item-actions" (actions . $.Page)}}
+</article>
+{{else}}<details id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}"{{if .Open}} open{{end}}>
+<summary><span class="date">{{.Date}}</span> <span class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</span> <span class="title">{{.Title}}</span> <span class="description">{{.Description}}</span></summary>
+<div class="item-body">
+{{template "item-head" .}}
+<div class="content">{{.Content}}</div>
+{{template "item-actions" (actions . $.Page)}}
+</div>
+</details>
+{{end}}{{end}}{{end}}
+
 {{define "icon"}}<img class="favicon" src="{{.}}" width="16" height="16" alt="">{{end}}
 
 {{define "link"}}{{with .Icon}}{{template "icon" .}} {{end}}<a href="{{.URL}}"{{if .Error}} class="error"{{end}}{{if .Tooltip}} title="{{.Tooltip}}"{{end}}{{if .Current}} aria-current="page"{{end}}>{{.Title}}</a>{{if .ShowCount}} <span class="count">{{.Count}}</span>{{end}}{{end}}
@@ -38,26 +54,12 @@
 {{define "reading"}}{{template "head" .}}
 <div class="layout">
 {{with .Reading.Sidebar}}{{template "sidebar" (sidebarPage . $)}}
-{{end}}<div class="reading">
+{{end}}<div class="reading"{{if .Reading.Autofocus}} data-autofocus{{end}}{{if .Reading.Swipe}} data-swipe{{end}}{{if .Reading.AutoreadItem}} data-autoread-item{{end}}>
 <h1>{{.Reading.Heading}} <small>{{.Reading.Count}}</small></h1>
 {{if .Reading.Empty}}<p class="empty">{{.Reading.Empty}}</p>
 {{end}}<div class="items">
-{{range .Reading.Items}}{{if $.Reading.Expanded}}<article id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}">
-<p class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</p>
-{{template "item-head" .}}
-<div class="content">{{.Content}}</div>
-{{template "item-actions" (actions . $)}}
-</article>
-{{else}}<details id="item-{{.ID}}" class="item{{if not .Read}} unread{{end}}"{{if .Open}} open{{end}}>
-<summary><span class="date">{{.Date}}</span> <span class="feed">{{template "icon" .Icon}} {{.FeedTitle}}</span> <span class="title">{{.Title}}</span> <span class="description">{{.Description}}</span></summary>
-<div class="item-body">
-{{template "item-head" .}}
-<div class="content">{{.Content}}</div>
-{{template "item-actions" (actions . $)}}
-</div>
-</details>
-{{end}}{{end}}</div>
-{{with .Reading.Pager}}<p class="pager">{{if .Prev}}<a href="{{.Prev}}">{{$.T "pager.previous"}}</a>{{else}}<span class="disabled">{{$.T "pager.previous"}}</span>{{end}} <span class="current">{{.Page}} / {{.Count}}</span> {{if .Next}}<a href="{{.Next}}">{{$.T "pager.next"}}</a>{{else}}<span class="disabled">{{$.T "pager.next"}}</span>{{end}}</p>
+{{range .Reading.Items}}{{template "item" (itemIn . $)}}{{end}}</div>
+{{with .Reading.Pager}}<p class="pager">{{if .Prev}}<a rel="prev" href="{{.Prev}}">{{$.T "pager.previous"}}</a>{{else}}<span class="disabled">{{$.T "pager.previous"}}</span>{{end}} <span class="current">{{.Page}} / {{.Count}}</span> {{if .Next}}<a rel="next" href="{{.Next}}">{{$.T "pager.next"}}</a>{{else}}<span class="disabled">{{$.T "pager.next"}}</span>{{end}}</p>
 {{end}}</div>
 </div>
 {{template "foot" .}}{{end}}
@@ -91,13 +93,13 @@
 </form>
 <form method="post" action="/mark">
 {{template "hidden" .}}
-{{template "selection-fields" .}}<button type="submit" name="read" value="1">{{.T (printf "menu.read_%s" .Reading.Kind)}}</button>
+{{template "selection-fields" .}}<button type="submit" name="read" value="1" data-confirm="{{.T "menu.confirm_read"}}">{{.T (printf "menu.read_%s" .Reading.Kind)}}</button>
 </form>
 <form method="post" action="/mark">
 {{template "hidden" .}}
 {{template "selection-fields" .}}<button type="submit" name="read" value="0">{{.T (printf "menu.unread_%s" .Reading.Kind)}}</button>
 </form>
 {{end}}<a href="/add">{{.T "menu.add"}}</a>
-{{if not .Reading.Starred}}<a href="{{.Reading.EditURL}}">{{.T "menu.edit"}}</a>
+{{if not .Reading.Starred}}<a data-shortcut="edit" href="{{.Reading.EditURL}}">{{.T "menu.edit"}}</a>
 {{end}}<a href="{{.Reading.SwitchURL}}">{{if .Reading.Starred}}{{.T "menu.items"}}{{else}}{{.T "menu.starred"}}{{end}}</a>
 {{end}}

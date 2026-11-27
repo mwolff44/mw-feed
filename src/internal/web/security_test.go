@@ -189,7 +189,7 @@ func TestMenuAppearsOnlyOnPagesOfALoggedInUser(t *testing.T) {
 		page := body(t, a.get(t, path))
 		for _, want := range []string{
 			`<header class="top">`,
-			`<a class="brand" href="/">mw-feed</a>`,
+			`<a class="brand" data-shortcut="home" href="/">mw-feed</a>`,
 			`<form method="post" action="/logout">`,
 		} {
 			if !strings.Contains(page, want) {

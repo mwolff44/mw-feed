@@ -30,6 +30,7 @@ func parseTemplates() *template.Template {
 	return template.Must(template.New("").Funcs(template.FuncMap{
 		"actions":     newActionsView,
 		"sidebarPage": newSidebarData,
+		"itemIn":      newItemContext,
 	}).ParseFS(templateFiles, "templates/*.html"))
 }
 
@@ -97,6 +98,7 @@ func NewHandler(opts Options, st *store.Store, svc *auth.Service, feeds *feed.Se
 	mux.HandleFunc("POST /mark", s.markRead)
 	mux.HandleFunc("POST /update", s.update)
 	mux.HandleFunc("POST /item/{id}/{action}", s.itemAction)
+	mux.HandleFunc("GET /item/{id}", s.protected(s.itemFragment))
 	mux.HandleFunc("GET /favicon/{id}", s.protected(s.favicon))
 	mux.Handle("GET /static/", staticHandler())
 	mux.HandleFunc("/", s.fallback)

@@ -1,0 +1,11 @@
+{
+  "name": "mw-feed-e2e",
+  "private": true,
+  "description": "Browser tests of mw-feed. Development tooling only: nothing here is shipped.",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}

@@ -182,7 +182,8 @@ func TestItemActionsChangeTheItemAndComeBackToThePage(t *testing.T) {
 		}
 		return it.Read, !it.StarredAt.IsZero()
 	}
-	back := fmt.Sprintf("/?page=1&open=%d", newer.ID)
+	back := "/?page=1&open=999" // the item of the action replaces any other opened item
+	want := fmt.Sprintf("/?open=%d&page=1#item-%d", newer.ID, newer.ID)
 
 	steps := []struct {
 		action           string
@@ -196,8 +197,8 @@ func TestItemActionsChangeTheItemAndComeBackToThePage(t *testing.T) {
 	for _, s := range steps {
 		resp := a.act(t, fmt.Sprintf("/item/%d/%s", newer.ID, s.action), url.Values{"return": {back}})
 
-		if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != back {
-			t.Fatalf("%s = %d → %q, want 303 → %q", s.action, resp.StatusCode, resp.Header.Get("Location"), back)
+		if resp.StatusCode != http.StatusSeeOther || resp.Header.Get("Location") != want {
+			t.Fatalf("%s = %d → %q, want 303 → %q", s.action, resp.StatusCode, resp.Header.Get("Location"), want)
 		}
 		if read, starred := state(); read != s.wantRead || starred != s.wantSt {
 			t.Fatalf("after %s: read=%v starred=%v, want read=%v starred=%v", s.action, read, starred, s.wantRead, s.wantSt)
@@ -227,16 +228,19 @@ func TestItemActionsAreRefusedWithoutCSRFOrForUnknownItems(t *testing.T) {
 
 func TestReturnTargetMustBeALocalPath(t *testing.T) {
 	a, list := seeded(t)
-	path := fmt.Sprintf("/item/%d/read", list.Items[0].ID)
+	id := list.Items[0].ID
+	path := fmt.Sprintf("/item/%d/read", id)
+	// Whatever the target, the item is opened on it; an unsafe target becomes "/".
+	open := fmt.Sprintf("open=%d#item-%d", id, id)
 	cases := map[string]string{
-		"/feed/3?page=2#x":       "/feed/3?page=2#x",
-		"":                       "/",
-		"https://evil.example/":  "/",
-		"//evil.example/":        "/",
-		`/\evil.example`:         "/",
-		"javascript:alert(1)":    "/",
-		"evil":                   "/",
-		"/ok\r\nSet-Cookie: x=1": "/",
+		"/feed/3?page=2#x":       fmt.Sprintf("/feed/3?open=%d&page=2#item-%d", id, id),
+		"":                       "/?" + open,
+		"https://evil.example/":  "/?" + open,
+		"//evil.example/":        "/?" + open,
+		`/\evil.example`:         "/?" + open,
+		"javascript:alert(1)":    "/?" + open,
+		"evil":                   "/?" + open,
+		"/ok\r\nSet-Cookie: x=1": "/?" + open,
 	}
 	for given, want := range cases {
 		resp := a.act(t, path, url.Values{"return": {given}})
@@ -497,13 +501,13 @@ func TestPaginationShowsPagesAndClampsInvalidOnes(t *testing.T) {
 		has, hasNo []string
 		pager      string
 	}{
-		{"/", []string{"Item 5", "Item 4"}, []string{"Item 3"}, `<span class="disabled">Previous page</span> <span class="current">1 / 3</span> <a href="/?page=2">Next page</a>`},
-		{"/?page=2", []string{"Item 3", "Item 2"}, []string{"Item 4", "Item 1"}, `<a href="/?page=1">Previous page</a> <span class="current">2 / 3</span> <a href="/?page=3">Next page</a>`},
-		{"/?page=3", []string{"Item 1"}, []string{"Item 2"}, `<a href="/?page=2">Previous page</a> <span class="current">3 / 3</span> <span class="disabled">Next page</span>`},
+		{"/", []string{"Item 5", "Item 4"}, []string{"Item 3"}, `<span class="disabled">Previous page</span> <span class="current">1 / 3</span> <a rel="next" href="/?page=2">Next page</a>`},
+		{"/?page=2", []string{"Item 3", "Item 2"}, []string{"Item 4", "Item 1"}, `<a rel="prev" href="/?page=1">Previous page</a> <span class="current">2 / 3</span> <a rel="next" href="/?page=3">Next page</a>`},
+		{"/?page=3", []string{"Item 1"}, []string{"Item 2"}, `<a rel="prev" href="/?page=2">Previous page</a> <span class="current">3 / 3</span> <span class="disabled">Next page</span>`},
 		{"/?page=99", []string{"Item 1"}, []string{"Item 2"}, `<span class="current">3 / 3</span>`},
 		{"/?page=abc", []string{"Item 5"}, []string{"Item 3"}, `<span class="current">1 / 3</span>`},
 		{"/?page=0", []string{"Item 5"}, nil, `<span class="current">1 / 3</span>`},
-		{fmt.Sprintf("/feed/%d?page=2", f.ID), []string{"Item 3"}, []string{"Item 5"}, fmt.Sprintf(`<a href="/feed/%d?page=3">Next page</a>`, f.ID)},
+		{fmt.Sprintf("/feed/%d?page=2", f.ID), []string{"Item 3"}, []string{"Item 5"}, fmt.Sprintf(`<a rel="next" href="/feed/%d?page=3">Next page</a>`, f.ID)},
 	}
 	for _, tc := range cases {
 		page := body(t, a.get(t, tc.path))
@@ -736,7 +740,7 @@ func TestMenuOfReadingPagesOffersTheOppositeChoicesForTheSelection(t *testing.T)
 		`<input type="hidden" name="kind" value="feed">`,
 		fmt.Sprintf(`<input type="hidden" name="id" value="%d">`, alpha.ID),
 		`<button type="submit">Update feed</button>`,
-		`<button type="submit" name="read" value="1">Mark feed as read</button>`,
+		`<button type="submit" name="read" value="1" data-confirm="Mark all these items as read?">Mark feed as read</button>`,
 		`<button type="submit" name="read" value="0">Mark feed as unread</button>`,
 		`<a href="/starred/feed/`,
 	} {

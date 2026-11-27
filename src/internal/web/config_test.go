@@ -51,7 +51,7 @@ func validConfig() url.Values {
 		"title": {"Renamed"}, "locale": {"de"}, "theme": {"light"}, "redirector": {"https://anonym.example/?"},
 		"view": {"expanded"}, "filter": {"all"}, "order": {"olderFirst"}, "list_feeds": {"1"},
 		"by_page": {"20"}, "max_items": {"50"}, "max_update": {"30"},
-		"blank": {"1"}, "preload": {"1"},
+		"blank": {"1"},
 	}
 }
 
@@ -72,7 +72,7 @@ func TestConfigSavesEverySettingAndTheCheckboxesThatAreNotChecked(t *testing.T) 
 	want := store.Settings{
 		Title: "Renamed", Locale: "de", Theme: "light", Redirector: "https://anonym.example/?", View: "expanded",
 		Filter: "all", Order: "olderFirst", ListFeeds: true, ByPage: 20, MaxItems: 50, MaxUpdate: 30,
-		Blank: true, Preload: true, // every other box was not sent: false
+		Blank: true, // every other box was not sent: false
 	}
 	if st != want {
 		t.Errorf("settings = %+v\nwant     %+v", st, want)
@@ -134,5 +134,15 @@ func TestConfigRefusesWhatIsWrongAndSavesNothing(t *testing.T) {
 	}
 	if resp := a.post(t, "/config", validConfig()); resp.StatusCode != http.StatusForbidden {
 		t.Errorf("POST /config without CSRF = %d, want 403", resp.StatusCode)
+	}
+}
+
+func TestConfigPageHasNoPreloadOption(t *testing.T) {
+	// The server renders the content of every item of the page, so there is
+	// nothing left to preload: the option no longer exists.
+	a, _ := seeded(t)
+
+	if page := body(t, a.get(t, "/config")); strings.Contains(page, `name="preload"`) {
+		t.Errorf("the configuration page still offers preload:\n%s", page)
 	}
 }
