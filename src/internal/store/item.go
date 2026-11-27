@@ -76,16 +76,6 @@ func (q *queries) queryItems(ctx context.Context, where, order string, args ...a
 	return out, rows.Err()
 }
 
-// ItemsOfFeed returns the items of a feed, newest first.
-func (q *queries) ItemsOfFeed(ctx context.Context, feedID int64) ([]Item, error) {
-	return q.queryItems(ctx, "feed_id = ?", "published_at DESC, id DESC", feedID)
-}
-
-// StarredItems returns every starred item, most recently starred first.
-func (q *queries) StarredItems(ctx context.Context) ([]Item, error) {
-	return q.queryItems(ctx, "starred_at IS NOT NULL", "starred_at DESC, id DESC")
-}
-
 // SetItemRead marks an item read or unread; it reports whether the item exists.
 func (q *queries) SetItemRead(ctx context.Context, id int64, read bool) (bool, error) {
 	res, err := q.db.ExecContext(ctx, "UPDATE items SET is_read = ? WHERE id = ?", read, id)
@@ -181,4 +171,170 @@ func (q *queries) DeleteItems(ctx context.Context, ids []int64) error {
 		}
 	}
 	return nil
+}
+
+// SelectionKind tells which items a Selection covers.
+type SelectionKind int
+
+// The kinds of selection.
+const (
+	SelectAll    SelectionKind = iota // every item of every existing feed
+	SelectFolder                      // the items of the feeds of a folder
+	SelectFeed                        // the items of one feed
+)
+
+// Selection designates a set of items: all, a folder, or a feed.
+type Selection struct {
+	Kind SelectionKind
+	ID   int64 // folder or feed ID; unused for SelectAll
+}
+
+// ItemList describes a page of items to read.
+type ItemList struct {
+	Selection   Selection
+	UnreadOnly  bool
+	OldestFirst bool
+	Limit       int
+	Offset      int
+}
+
+// where returns the SQL condition selecting the items of s. Items of deleted
+// feeds (feed_id NULL) belong to no selection.
+func (s Selection) where() (string, []any) {
+	switch s.Kind {
+	case SelectFeed:
+		return "feed_id = ?", []any{s.ID}
+	case SelectFolder:
+		return "feed_id IN (SELECT feed_id FROM feed_folders WHERE folder_id = ?)", []any{s.ID}
+	default:
+		return "feed_id IS NOT NULL", nil
+	}
+}
+
+// condition returns the SQL condition of a selection, optionally limited to unread items.
+func condition(sel Selection, unreadOnly bool) (string, []any) {
+	where, args := sel.where()
+	if unreadOnly {
+		where += " AND is_read = 0"
+	}
+	return where, args
+}
+
+// CountItems returns the number of items of a selection.
+func (q *queries) CountItems(ctx context.Context, sel Selection, unreadOnly bool) (int, error) {
+	where, args := condition(sel, unreadOnly)
+	var total int
+	if err := q.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM items WHERE "+where, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count items: %w", err)
+	}
+	return total, nil
+}
+
+// ListItems returns a page of the selected items.
+func (q *queries) ListItems(ctx context.Context, l ItemList) ([]Item, error) {
+	where, args := condition(l.Selection, l.UnreadOnly)
+	order := "published_at DESC, id DESC"
+	if l.OldestFirst {
+		order = "published_at ASC, id ASC"
+	}
+	return q.queryItems(ctx, where, order+" LIMIT ? OFFSET ?", append(args, l.Limit, l.Offset)...)
+}
+
+// ItemByID returns an item, or ErrNotFound.
+func (q *queries) ItemByID(ctx context.Context, id int64) (Item, error) {
+	items, err := q.queryItems(ctx, "id = ?", "id", id)
+	if err != nil {
+		return Item{}, err
+	}
+	if len(items) == 0 {
+		return Item{}, ErrNotFound
+	}
+	return items[0], nil
+}
+
+// ItemCount is a number of unread items and a total number of items.
+type ItemCount struct {
+	Unread int
+	Total  int
+}
+
+// ItemCounts holds the counters of the items of existing feeds, by feed and by
+// folder. Feeds and folders without any item are absent.
+type ItemCounts struct {
+	ByFeed   map[int64]ItemCount
+	ByFolder map[int64]ItemCount
+}
+
+// CountItemsByFeedAndFolder computes the counters with two grouped queries.
+func (q *queries) CountItemsByFeedAndFolder(ctx context.Context) (ItemCounts, error) {
+	byFeed, err := q.groupedCounts(ctx,
+		`SELECT feed_id, COUNT(*), SUM(is_read = 0) FROM items WHERE feed_id IS NOT NULL GROUP BY feed_id`)
+	if err != nil {
+		return ItemCounts{}, err
+	}
+	byFolder, err := q.groupedCounts(ctx,
+		`SELECT ff.folder_id, COUNT(*), SUM(i.is_read = 0)
+		 FROM feed_folders ff JOIN items i ON i.feed_id = ff.feed_id GROUP BY ff.folder_id`)
+	if err != nil {
+		return ItemCounts{}, err
+	}
+	return ItemCounts{ByFeed: byFeed, ByFolder: byFolder}, nil
+}
+
+func (q *queries) groupedCounts(ctx context.Context, query string) (map[int64]ItemCount, error) {
+	rows, err := q.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("count items: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := map[int64]ItemCount{}
+	for rows.Next() {
+		var id int64
+		var c ItemCount
+		if err := rows.Scan(&id, &c.Total, &c.Unread); err != nil {
+			return nil, fmt.Errorf("count items: %w", err)
+		}
+		out[id] = c
+	}
+	return out, rows.Err()
+}
+
+// SetReadForSelection marks every item of a selection read or unread, and
+// returns the number of items whose state changed.
+func (q *queries) SetReadForSelection(ctx context.Context, sel Selection, read bool) (int, error) {
+	where, args := sel.where()
+	res, err := q.db.ExecContext(ctx, "UPDATE items SET is_read = ? WHERE "+where+" AND is_read != ?",
+		append([]any{read}, append(args, read)...)...)
+	if err != nil {
+		return 0, fmt.Errorf("mark items: %w", err)
+	}
+	n, err := res.RowsAffected()
+	return int(n), err
+}
+
+// starredCondition returns the SQL condition of the starred items of a
+// selection. "All" includes the starred items of deleted feeds.
+func starredCondition(sel Selection) (string, []any) {
+	if sel.Kind == SelectAll {
+		return "starred_at IS NOT NULL", nil
+	}
+	where, args := sel.where()
+	return where + " AND starred_at IS NOT NULL", args
+}
+
+// CountStarred returns the number of starred items of a selection.
+func (q *queries) CountStarred(ctx context.Context, sel Selection) (int, error) {
+	where, args := starredCondition(sel)
+	var total int
+	if err := q.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM items WHERE "+where, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count starred items: %w", err)
+	}
+	return total, nil
+}
+
+// ListStarred returns a page of the starred items of a selection, most
+// recently starred first.
+func (q *queries) ListStarred(ctx context.Context, sel Selection, limit, offset int) ([]Item, error) {
+	where, args := starredCondition(sel)
+	return q.queryItems(ctx, where, "starred_at DESC, id DESC LIMIT ? OFFSET ?", append(args, limit, offset)...)
 }

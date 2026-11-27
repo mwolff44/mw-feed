@@ -129,11 +129,6 @@ func (s *Service) Feeds(ctx context.Context) ([]Feed, error) {
 	return feeds, nil
 }
 
-// Items returns the items of a feed, newest first.
-func (s *Service) Items(ctx context.Context, feedID int64) ([]Item, error) {
-	return s.store.ItemsOfFeed(ctx, feedID)
-}
-
 // newItem builds the stored item of a parsed entry: "via" falls back to the
 // site URL, and the author is prefixed with the feed title.
 func newItem(feedID int64, feedTitle, siteURL string, e Entry) store.NewItem {

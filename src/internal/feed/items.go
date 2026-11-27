@@ -33,11 +33,6 @@ func (s *Service) SetStarred(ctx context.Context, itemID int64, starred bool) er
 	return err
 }
 
-// StarredItems returns every starred item, most recently starred first.
-func (s *Service) StarredItems(ctx context.Context) ([]Item, error) {
-	return s.store.StarredItems(ctx)
-}
-
 // DeleteFeed removes a feed and its items, except the starred ones, which stay
 // available with the title of their former feed.
 func (s *Service) DeleteFeed(ctx context.Context, id int64) error {
