@@ -6,8 +6,13 @@ COPY src/go.mod src/go.sum ./
 RUN go mod download
 COPY src/ ./
 RUN CGO_ENABLED=0 go build -trimpath -o /out/mw-feed ./cmd/mw-feed
+RUN mkdir /out/data
 
 FROM gcr.io/distroless/static:nonroot
 COPY --from=build /out/mw-feed /mw-feed
+COPY --from=build --chown=nonroot:nonroot /out/data /data
+ENV MW_FEED_DATA=/data
 USER nonroot:nonroot
+EXPOSE 8080
 ENTRYPOINT ["/mw-feed"]
+CMD ["serve"]

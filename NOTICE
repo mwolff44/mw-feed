@@ -22,6 +22,7 @@ Components linked into the mw-feed binary (all GPL-3.0-compatible):
   github.com/google/uuid            BSD-3-Clause
   github.com/remyoudompheng/bigfft  BSD-3-Clause
   golang.org/x/sys                  BSD-3-Clause
+  golang.org/x/crypto               BSD-3-Clause
 
 Full license texts: see LICENSE and LICENSE-3RD-PARTY.md in the
 modernc.org/sqlite and modernc.org/libc modules.
