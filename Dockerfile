@@ -2,7 +2,7 @@
 
 FROM golang:1.27 AS build
 WORKDIR /src
-COPY src/go.mod ./
+COPY src/go.mod src/go.sum ./
 RUN go mod download
 COPY src/ ./
 RUN CGO_ENABLED=0 go build -trimpath -o /out/mw-feed ./cmd/mw-feed

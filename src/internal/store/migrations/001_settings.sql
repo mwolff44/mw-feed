@@ -1,0 +1,22 @@
+CREATE TABLE settings (
+  id INTEGER PRIMARY KEY CHECK(id=1),
+  title TEXT NOT NULL DEFAULT 'mw-feed',
+  locale TEXT NOT NULL DEFAULT 'en',
+  redirector TEXT NOT NULL DEFAULT '',
+  max_items INTEGER NOT NULL DEFAULT 100,
+  max_update INTEGER NOT NULL DEFAULT 60,
+  "order" TEXT NOT NULL DEFAULT 'newerFirst',
+  view TEXT NOT NULL DEFAULT 'list',
+  filter TEXT NOT NULL DEFAULT 'unread',
+  list_feeds INTEGER NOT NULL DEFAULT 1,
+  by_page INTEGER NOT NULL DEFAULT 10,
+  autoread_item INTEGER NOT NULL DEFAULT 0,
+  autohide INTEGER NOT NULL DEFAULT 0,
+  autofocus INTEGER NOT NULL DEFAULT 1,
+  add_favicon INTEGER NOT NULL DEFAULT 0,
+  preload INTEGER NOT NULL DEFAULT 0,
+  blank INTEGER NOT NULL DEFAULT 0,
+  swipe INTEGER NOT NULL DEFAULT 1,
+  theme TEXT NOT NULL DEFAULT 'auto'
+);
+INSERT INTO settings (id) VALUES (1);

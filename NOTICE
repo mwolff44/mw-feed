@@ -10,4 +10,18 @@ project is reused.
 
 Third-party dependencies
 ------------------------
-None yet.
+Components linked into the mw-feed binary (all GPL-3.0-compatible):
+
+  modernc.org/sqlite v1.63.0        BSD-3-Clause
+  modernc.org/libc v1.80.1          BSD-3-Clause (also embeds notices for
+                                    Go, go-netdb, musl libc, NixOS/nixpkgs)
+  modernc.org/mathutil v1.7.1       BSD-3-Clause
+  modernc.org/memory v1.12.1        BSD-3-Clause
+  SQLite 3.54.1 (transpiled)        public domain
+  github.com/dustin/go-humanize     MIT
+  github.com/google/uuid            BSD-3-Clause
+  github.com/remyoudompheng/bigfft  BSD-3-Clause
+  golang.org/x/sys                  BSD-3-Clause
+
+Full license texts: see LICENSE and LICENSE-3RD-PARTY.md in the
+modernc.org/sqlite and modernc.org/libc modules.
