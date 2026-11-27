@@ -63,6 +63,7 @@ Référence fonctionnelle : l'application PHP du dépôt `kriss_feed`, située *
 | 36 | SSRF | Bloqués : loopback (`127.0.0.0/8`, `::1`), privées (`10/8`, `172.16/12`, `192.168/16`, `fc00::/7`), lien-local (`169.254/16`, `fe80::/10`), non spécifiée (`0.0.0.0`, `::`), multicast, CGNAT (`100.64/10`) ; IPv6 encapsulant une IPv4 normalisée avant contrôle ; contrôle sur l'**adresse réellement utilisée pour la connexion**. `MW_FEED_ALLOW_PRIVATE` lève toutes les restrictions d'adresse, pas celles de schéma, taille et redirections. |
 | 37 | Assainissement | Une **seule** passe, **à la fin** : contenu du flux + pièces jointes (4.4), puis la politique unique, dérivée de la politique `bluemonday` pour contenu tiers. Autorisés : `img`, `audio`, `video`, `source` (sources http/https) et `iframe` vers `https://www.youtube-nocookie.com/` uniquement. Retirés : scripts, autres `iframe`, `on*`, `javascript:`, styles en ligne. |
 | 38 | Tri des flux | Par titre, **tri naturel insensible à la casse** (comme `strnatcasecmp`), à égalité par identifiant. |
+| 39 | Précisions de la phase 3 (prises à l'implémentation) | Lien, `via`, URL du site et URL de pièces jointes : **http(s) absolues uniquement** (un lien `javascript:` ou relatif n'est jamais conservé) ; les URL relatives sont aussi retirées du HTML assaini. Un flux qui répond **sans aucun élément** ne déclenche ni avertissement ni rétention (réponse peut-être transitoire). `ReorderFolders` exige la liste de **tous** les dossiers, chacun une fois. Le service expose aussi `StarredItems` (étoilés, plus récemment étoilé d'abord) et `DeleteFolder`. `UpdateFeed` enregistre l'erreur dans `last_error` **et** la renvoie. Les doublons de lien dans un même flux sont ignorés. |
 | 12 | Tests | **Bibliothèque standard uniquement** (aucune bibliothèque d'assertions ni de mocks, horloge injectable maison). Unitaires, intégration HTTP (`httptest`, SQLite temporaire, faux serveur de flux), `go vet` + `golangci-lint` + `go test -race`, CI GitHub Actions (tests + build de l'image Docker). Pas de tests de parité avec l'application PHP. |
 
 ---
@@ -181,11 +182,11 @@ login_failures(ip TEXT PRIMARY KEY, count INTEGER NOT NULL, last_failure_at INTE
 folders(id INTEGER PRIMARY KEY, title TEXT NOT NULL UNIQUE,
         position INTEGER NOT NULL,                       -- ordre manuel
         collapsed INTEGER NOT NULL DEFAULT 0)
-feeds(id INTEGER PRIMARY KEY, xml_url TEXT NOT NULL UNIQUE, html_url TEXT, title TEXT NOT NULL, description TEXT,
+feeds(id INTEGER PRIMARY KEY, xml_url TEXT NOT NULL UNIQUE, html_url TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
       update_interval INTEGER,                           -- NULL = auto (maxUpdate), sinon minutes
-      last_update_at INTEGER, last_error TEXT,
-      last_warning TEXT,                                 -- clé de traduction (ex. 'items_missed')
-      http_etag TEXT, http_last_modified TEXT,           -- validateurs de la dernière réponse 200
+      last_update_at INTEGER, last_error TEXT NOT NULL DEFAULT '',
+      last_warning TEXT NOT NULL DEFAULT '',             -- clé de traduction (ex. 'items_missed')
+      http_etag TEXT NOT NULL DEFAULT '', http_last_modified TEXT NOT NULL DEFAULT '',  -- validateurs de la dernière réponse 200
       last_item_time INTEGER)
 feed_folders(feed_id INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
              folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,

@@ -16,6 +16,7 @@ import (
 
 // Store gives typed access to the SQLite database.
 type Store struct {
+	*queries
 	db *sql.DB
 }
 
@@ -61,7 +62,7 @@ func Open(ctx context.Context, dataDir string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("migrate: %w", err)
 	}
-	return &Store{db: db}, nil
+	return &Store{db: db, queries: &queries{db: db}}, nil
 }
 
 // Close releases the database.

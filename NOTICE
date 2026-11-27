@@ -23,6 +23,13 @@ Components linked into the mw-feed binary (all GPL-3.0-compatible):
   github.com/remyoudompheng/bigfft  BSD-3-Clause
   golang.org/x/sys                  BSD-3-Clause
   golang.org/x/crypto               BSD-3-Clause
+  golang.org/x/net                  BSD-3-Clause
+  golang.org/x/text                 BSD-3-Clause
+  github.com/mmcdole/gofeed         MIT
+  github.com/mmcdole/goxpp/v2       MIT
+  github.com/microcosm-cc/bluemonday BSD-3-Clause
+  github.com/aymerick/douceur       MIT
+  github.com/gorilla/css            BSD-3-Clause
 
 Full license texts: see LICENSE and LICENSE-3RD-PARTY.md in the
 modernc.org/sqlite and modernc.org/libc modules.
