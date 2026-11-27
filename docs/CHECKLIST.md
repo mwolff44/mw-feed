@@ -39,6 +39,6 @@ Les noms qui commencent par Test sont des tests Go (`src/`), les fichiers `*.spe
 
 ## Non vérifié
 
-* **La CI GitHub Actions n'a jamais été exécutée** (aucun dépôt distant). Le workflow est contrôlé par `actionlint` et ses étapes Docker ont été rejouées à la main.
+* **La CI GitHub Actions n'a tourné qu'une fois** : le 27 novembre 2026, sur le commit `d0cfe90` (run 46042207567), les quatre jobs (`go`, `e2e`, `docker`, `secrets`) sont verts. Elle n'a pas encore vu de pull request ni d'échec réel, et les hooks locaux restent facultatifs.
 * **Le rendu visuel** n'a été regardé que sur des captures (clair, sombre, mobile, page de lecture) ; ni les autres pages ni le thème automatique ne l'ont été.
 * **Les chaînes françaises et allemandes générées** sont listées dans `docs/i18n-review.md` et attendent une relecture humaine.
