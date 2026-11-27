@@ -4,7 +4,9 @@
 
 Document destiné à un agent de développement. Il décrit **quoi** construire, les décisions déjà prises par le propriétaire du projet, et un découpage en phases vérifiables. Ce qui n'est pas décidé est listé en section 12 : **ne pas trancher soi-même, demander**.
 
-Référence fonctionnelle : l'application PHP du dépôt `kriss_feed` (`src/kriss_feed.php`, `src/class/*.php`, `src/class/tpl/*.html`, `src/inc/script.js`). Elle sert de spécification de comportement, pas de modèle d'architecture.
+Référence fonctionnelle : l'application PHP du dépôt `kriss_feed`, située **hors de ce dépôt** dans `../kriss_feed/` (`src/kriss_feed.php`, `src/class/*.php`, `src/class/tpl/*.html`, `src/inc/script.js`, `src/po/messages/`). Elle sert de spécification de comportement, pas de modèle d'architecture. Les chemins `src/...` cités dans ce document, hors section 2, désignent ce dépôt PHP.
+
+**Règle de travail : ne rien extrapoler.** Si une information manque ou n'est pas claire, l'agent la demande au propriétaire au lieu de la deviner.
 
 ---
 
@@ -18,14 +20,14 @@ Référence fonctionnelle : l'application PHP du dépôt `kriss_feed` (`src/kris
 | 4 | Déploiement | Serveur HTTP simple, port configurable. Pas de TLS intégré, pas de sous-chemin : reverse proxy en frontal, application servie à la racine. |
 | 5 | Mises à jour | **Ordonnanceur interne** en arrière-plan. Pas d'endpoint cron externe. Les mises à jour manuelles (flux, dossier, tout) restent dans l'interface. |
 | 6 | Plugins | **Supprimés.** Aucune notion de hook ou de plugin. |
-| 7 | Interface | **Modernisée** (nouveau design), rendue côté serveur avec `html/template`, CSS écrit à la main, JS léger sans étape de build (htmx autorisé). **Utilisable sans JavaScript.** Pas de SPA. Pas d'API JSON publique. |
+| 7 | Interface | **Modernisée** (nouveau design), rendue côté serveur avec `html/template`, CSS écrit à la main, **htmx** (embarqué, sans étape de build) plus un peu de JS maison. **Utilisable sans JavaScript.** Pas de SPA. Pas d'API JSON publique. |
 | 7c | Thèmes | Clair et sombre. Réglage dans la configuration : automatique (`prefers-color-scheme`), clair, sombre. Les 11 thèmes actuels sont abandonnés. |
 | 8 | Fonctionnalités supprimées | Partage Shaarli, protection de session par IP, ajout de flux par URL en paramètre (`?add&newfeed=`). |
 | 8 | Fonctionnalités conservées | Anonymisation des liens (redirector), favicons, précharge/cache, réglages `blank`, `swipe`, `autofocus`. |
 | 5b | Visibilité | **Privé uniquement** : tout exige une connexion. Pas de mode public ni protégé. |
-| 9 | Authentification | Un seul utilisateur, mot de passe haché (bcrypt ou argon2id), formulaire d'installation au premier lancement, session par cookie, CSRF, expiration par inactivité (3600 s), bannissement après 4 échecs pendant 1800 s, case « rester connecté », changement de mot de passe. Valeurs **fixes**. |
+| 9 | Authentification | Un seul utilisateur, mot de passe haché avec **argon2id** (`golang.org/x/crypto/argon2`, 19 MiB, t=2, p=1, format PHC), formulaire d'installation au premier lancement, session par cookie, CSRF, expiration par inactivité (3600 s), bannissement après 4 échecs pendant 1800 s, case « rester connecté », changement de mot de passe. Valeurs **fixes**. |
 | 10 | i18n | Fichiers JSON embarqués, un par langue : **en** (défaut), **fr**, **de**. Langue réglée dans la configuration. |
-| 11 | Outils | Go dernière stable (≥ 1.25) ; `net/http` (ServeMux) ; `html/template` ; `modernc.org/sqlite` ; `github.com/mmcdole/gofeed` ; OPML maison avec `encoding/xml` ; `github.com/microcosm-cc/bluemonday`. |
+| 11 | Outils | Go dernière stable (≥ 1.25) ; `net/http` (ServeMux, **ni Gin ni GORM** : SQL écrit à la main avec `database/sql`) ; `html/template` ; `modernc.org/sqlite` ; `golang.org/x/crypto` ; htmx ; `github.com/mmcdole/gofeed` ; OPML maison avec `encoding/xml` ; `github.com/microcosm-cc/bluemonday`. |
 | 11 | Dépôt, licence | **Nouveau dépôt**, licence **GPL v3** (GPL-3.0-or-later, texte intégral dans `LICENSE`). |
 | 12a | Crédit | Le projet est une réécriture de **KrISS feed**, créé par **Tontof** (http://tontof.net, https://github.com/tontof/kriss_feed). Le crédit est obligatoire (voir section 13). |
 | 12b | Port | Port par défaut **8080**. |
@@ -35,7 +37,10 @@ Référence fonctionnelle : l'application PHP du dépôt `kriss_feed` (`src/kris
 | 12f | Réglages supprimés | `autoUpdate`, `autoreadPage`, personnalisation de l'ordre du menu et de la pagination (ordre fixe). |
 | 12g | Étoilés | Conservés quand leur flux est supprimé, avec le nom du flux d'origine mémorisé. |
 | 12h | Favicon désactivé | Icône par défaut embarquée (aucune requête tierce). |
-| 12 | Tests | Unitaires, intégration HTTP (`httptest`, SQLite temporaire, faux serveur de flux), `go vet` + `golangci-lint` + `go test -race`, CI GitHub Actions (tests + build de l'image Docker). Pas de tests de parité avec l'application PHP. |
+| 13 | Code source | Tout le code Go est dans `src/`, avec **`go.mod` dans `src/`**. `Dockerfile`, `.github/` et `docs/` restent à la racine. |
+| 14 | Docker | Image finale `gcr.io/distroless/static:nonroot`. Pas de shell : `HEALTHCHECK` via la sous-commande `mw-feed healthcheck` qui interroge `/healthz`. |
+| 15 | Configuration d'exécution | Flags ou variables d'environnement : `MW_FEED_ADDR` (défaut `:8080`), `MW_FEED_DATA`, `MW_FEED_TRUST_PROXY`, `MW_FEED_ALLOW_PRIVATE`. |
+| 12 | Tests | **Bibliothèque standard uniquement** (aucune bibliothèque d'assertions ni de mocks, horloge injectable maison). Unitaires, intégration HTTP (`httptest`, SQLite temporaire, faux serveur de flux), `go vet` + `golangci-lint` + `go test -race`, CI GitHub Actions (tests + build de l'image Docker). Pas de tests de parité avec l'application PHP. |
 
 ---
 
@@ -96,29 +101,31 @@ Supprimés : `autoUpdate`, `autoreadPage`, personnalisation de l'ordre du menu e
 
 ## 2. Architecture
 
-Un seul module Go. Proposition de structure (à ajuster si justifié) :
+Un seul module Go, dont la racine est `src/`. Structure :
 
 ```
-cmd/mw-feed/main.go      # point d'entrée, flags/env, démarrage
-internal/config/            # lecture des flags/env (adresse, répertoire de données)
-internal/store/             # SQLite : migrations, requêtes (pas de SQL ailleurs)
-internal/feed/              # téléchargement, parsing (gofeed), mise à jour, règles de rétention
-internal/scheduler/         # ordonnanceur arrière-plan
-internal/opml/              # import / export
-internal/auth/              # hachage, sessions, CSRF, bannissement
-internal/web/               # handlers, middlewares, rendu
-internal/web/templates/     # html/template (embed)
-internal/web/static/        # css, js, favicon par défaut (embed)
-internal/i18n/              # chargement JSON, fonction T()
-internal/i18n/locales/      # en.json fr.json de.json (embed)
-internal/sanitize/          # bluemonday, politique unique
 Dockerfile
 .github/workflows/ci.yml
+docs/PLAN.md
+src/go.mod                      # module github.com/mwolff44/mw-feed
+src/cmd/mw-feed/main.go         # point d'entrée, flags/env, sous-commande healthcheck
+src/internal/config/            # lecture des flags/env (adresse, répertoire de données, proxy, SSRF)
+src/internal/store/             # SQLite : migrations, requêtes (pas de SQL ailleurs)
+src/internal/feed/              # téléchargement, parsing (gofeed), mise à jour, règles de rétention
+src/internal/scheduler/         # ordonnanceur arrière-plan
+src/internal/opml/              # import / export
+src/internal/auth/              # argon2id, sessions, CSRF, bannissement
+src/internal/web/               # handlers, middlewares, rendu
+src/internal/web/templates/     # html/template (embed), dont partiels htmx
+src/internal/web/static/        # css, js, htmx.min.js, favicon par défaut (embed)
+src/internal/i18n/              # chargement JSON, fonction T()
+src/internal/i18n/locales/      # en.json fr.json de.json (embed)
+src/internal/sanitize/          # bluemonday, politique unique
 ```
 
 Contraintes :
 - Aucune dépendance CGO. `CGO_ENABLED=0` doit compiler.
-- Configuration d'exécution minimale par **flags ou variables d'environnement** : adresse d'écoute (défaut `:8080`), répertoire de données (base SQLite + favicons). Tout le reste est dans la base (section 1.3).
+- Configuration d'exécution minimale par **flags ou variables d'environnement** (noms en section 0, n° 15). Tout le reste est dans la base (section 1.3). Les durées fixes (session 3600 s, bannissement 1800 s, 4 échecs, 30 jours) sont dans le code, pas dans la base.
 - Le SQL reste dans `internal/store`. Les handlers appellent des méthodes typées.
 - `context.Context` partout, arrêt propre (`SIGTERM`), journal via `log/slog`.
 
@@ -126,31 +133,58 @@ Contraintes :
 
 ## 3. Modèle de données (SQLite)
 
-Mode WAL, `foreign_keys=ON`, une seule connexion en écriture. Migrations versionnées, embarquées, appliquées au démarrage.
+Relationnel, KISS. Mode WAL, `foreign_keys=ON`, une seule connexion en écriture. Migrations versionnées, embarquées, appliquées au démarrage. Tous les temps sont des **INTEGER (secondes Unix)**.
 
-```
-settings(key TEXT PRIMARY KEY, value TEXT NOT NULL)          -- section 1.3
+```sql
+-- Réglages : une seule ligne, colonnes typées (section 1.3)
+settings(
+  id INTEGER PRIMARY KEY CHECK(id=1),
+  title TEXT NOT NULL DEFAULT 'mw-feed', locale TEXT NOT NULL DEFAULT 'en',
+  redirector TEXT NOT NULL DEFAULT '',
+  max_items INTEGER NOT NULL DEFAULT 100, max_update INTEGER NOT NULL DEFAULT 60,
+  "order" TEXT NOT NULL DEFAULT 'newerFirst', view TEXT NOT NULL DEFAULT 'list',
+  filter TEXT NOT NULL DEFAULT 'unread', list_feeds INTEGER NOT NULL DEFAULT 1,
+  by_page INTEGER NOT NULL DEFAULT 10,
+  autoread_item INTEGER NOT NULL DEFAULT 0, autohide INTEGER NOT NULL DEFAULT 0,
+  autofocus INTEGER NOT NULL DEFAULT 1, add_favicon INTEGER NOT NULL DEFAULT 0,
+  preload INTEGER NOT NULL DEFAULT 0, blank INTEGER NOT NULL DEFAULT 0,
+  swipe INTEGER NOT NULL DEFAULT 1, theme TEXT NOT NULL DEFAULT 'auto'
+)
 user(id INTEGER PRIMARY KEY CHECK(id=1), login TEXT NOT NULL, password_hash TEXT NOT NULL)
-sessions(id TEXT PRIMARY KEY, csrf_token TEXT NOT NULL, created_at, last_seen_at, persistent INTEGER NOT NULL)
-login_failures(ip TEXT PRIMARY KEY, count INTEGER NOT NULL, last_failure_at, banned_until)
-folders(id INTEGER PRIMARY KEY, title TEXT NOT NULL, position INTEGER NOT NULL, collapsed INTEGER NOT NULL DEFAULT 0)
+sessions(id TEXT PRIMARY KEY, csrf_token TEXT NOT NULL, created_at INTEGER NOT NULL,
+         last_seen_at INTEGER NOT NULL, persistent INTEGER NOT NULL)
+login_failures(ip TEXT PRIMARY KEY, count INTEGER NOT NULL, last_failure_at INTEGER NOT NULL, banned_until INTEGER)
+
+folders(id INTEGER PRIMARY KEY, title TEXT NOT NULL UNIQUE,
+        position INTEGER NOT NULL,                       -- ordre manuel
+        collapsed INTEGER NOT NULL DEFAULT 0)
 feeds(id INTEGER PRIMARY KEY, xml_url TEXT NOT NULL UNIQUE, html_url TEXT, title TEXT NOT NULL, description TEXT,
-      position INTEGER NOT NULL, update_interval TEXT NOT NULL DEFAULT 'auto',  -- 'auto' | 'max' | minutes
-      last_update_at, last_error TEXT, last_item_time)
-feed_folders(feed_id, folder_id, PRIMARY KEY(feed_id, folder_id))
-items(id INTEGER PRIMARY KEY, feed_id (NULL après suppression du flux si étoilé), feed_title TEXT, link_hash TEXT NOT NULL, title TEXT, link TEXT NOT NULL, via TEXT,
-      author TEXT, description TEXT, content TEXT, published_at INTEGER NOT NULL,
+      update_interval INTEGER,                           -- NULL = auto (maxUpdate), sinon minutes
+      last_update_at INTEGER, last_error TEXT, last_item_time INTEGER)
+feed_folders(feed_id INTEGER NOT NULL REFERENCES feeds(id) ON DELETE CASCADE,
+             folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+             PRIMARY KEY(feed_id, folder_id))
+items(id INTEGER PRIMARY KEY,
+      feed_id INTEGER REFERENCES feeds(id) ON DELETE SET NULL,   -- NULL seulement pour un étoilé orphelin
+      feed_title TEXT NOT NULL,                                  -- titre du flux d'origine, toujours renseigné
+      link TEXT NOT NULL, title TEXT, via TEXT, author TEXT, description TEXT, content TEXT,
+      published_at INTEGER NOT NULL,
       is_read INTEGER NOT NULL DEFAULT 0, starred_at INTEGER,
-      UNIQUE(feed_id, link_hash))
-favicons(feed_id PRIMARY KEY, data BLOB, fetched_at)           -- ou fichiers dans le répertoire de données : au choix de l'agent
+      UNIQUE(feed_id, link))
+favicons(feed_id INTEGER PRIMARY KEY REFERENCES feeds(id) ON DELETE CASCADE, data BLOB NOT NULL, fetched_at INTEGER NOT NULL)
 ```
 
-Index sur `items(feed_id, is_read, published_at)`, `items(starred_at)`.
+Index sur `items(feed_id, is_read, published_at)` et `items(starred_at)`.
 
 Notes :
-- La clé de déduplication d'un élément est le **lien** (hash du lien), comme en PHP (`smallHash(link)`). Un élément sans lien est ignoré.
-- Un élément étoilé n'est jamais supprimé par la rétention (4.3), et reste visible dans la page des étoilés même si son flux est supprimé (dans ce cas, le titre du flux d'origine est mémorisé sur l'élément pour l'affichage ; `feed_id` devient NULL à la suppression du flux).
-- L'ordre d'affichage des flux et dossiers est stocké (`position`), avec tri par titre ou par ordre manuel comme en PHP (`sortFeeds`, `sortFolders`).
+- La déduplication d'un élément se fait par son **lien** (`UNIQUE(feed_id, link)`). Un élément sans lien est ignoré.
+- **Suppression d'un flux** : faite par le code, dans une transaction (pas de trigger) : supprimer les éléments non étoilés du flux, les étoilés passent à `feed_id = NULL` (`ON DELETE SET NULL`). `feed_title` garantit l'affichage.
+- **Désétoiler** un élément dont `feed_id` est NULL le supprime (même transaction).
+- Un élément étoilé n'est jamais supprimé par la rétention (4.3).
+- `last_item_time` est conservé : la rétention peut supprimer l'élément le plus récent, ce qui fausserait la règle de nouveauté de 4.3.
+- **Ordre** : les flux sont triés par titre (ordre naturel, insensible à la casse), sans ordre manuel (comportement PHP `sortFeeds`). Les dossiers ont un ordre manuel (`folders.position`, comportement PHP `sortFolders`/`orderFolder`).
+- **Étoilés** : page triée par `starred_at` décroissant (étoile la plus récente d'abord), comme en PHP.
+- Favicons en BLOB dans la base : un seul fichier `.db` à sauvegarder.
 
 ---
 
@@ -166,7 +200,7 @@ Notes :
 ### 4.2 Ordonnanceur
 - Boucle en arrière-plan, tick régulier (par défaut chaque minute, valeur interne, pas configurable).
 - À chaque tick, sélectionner les flux dus : `now - last_update_at > délai * 60 s`.
-- Délai effectif : `auto` ou `max` → `maxUpdate`. Un nombre est accepté s'il est compris entre **5** (`MIN_TIME_UPDATE`) et `maxUpdate`, sinon retombe sur `auto`.
+- Délai effectif : `update_interval` NULL (auto) → `maxUpdate`. Un nombre est accepté s'il est compris entre **5** (`MIN_TIME_UPDATE`) et `maxUpdate`, sinon retombe sur auto (NULL).
 - Concurrence bornée (par défaut 4 téléchargements simultanés), timeout HTTP par flux (par défaut 30 s), `User-Agent` générique sans donnée personnelle.
 - Une erreur sur un flux n'arrête pas les autres : enregistrer `last_error`.
 - Même verrou/protection pour qu'une mise à jour manuelle et une mise à jour planifiée du même flux ne s'exécutent pas en parallèle.
@@ -175,7 +209,7 @@ Notes :
 ### 4.3 Mise à jour d'un flux (reprise de `Feed::updateChannel`)
 1. Télécharger et parser. En cas d'erreur : renseigner `last_error`, conserver les données existantes.
 2. Ne considérer que les `maxItems` éléments les plus récents du flux.
-3. Un élément est **nouveau** s'il n'existe pas déjà (même `link_hash`) **et** si sa date est postérieure à la date du plus récent élément déjà connu du flux. Date absente ou invalide : date courante.
+3. Un élément est **nouveau** s'il n'existe pas déjà (même `link`) **et** si sa date est postérieure à la date du plus récent élément déjà connu du flux. Date absente ou invalide : date courante.
 4. Pour un nouvel élément :
    - `via` : conserver l'URL `guid` seulement si c'est une URL dont l'hôte diffère de celui du lien, sinon vide ; si vide, remplacer par l'URL du site du flux.
    - `author` : `Titre du flux (auteur)` si un auteur existe, sinon `Titre du flux`.
@@ -226,7 +260,7 @@ Pages minimales : installation, connexion, déconnexion, accueil/liste d'éléme
 ### 6.1 Principes
 - HTML sémantique, accessible au clavier, responsive (mobile compris).
 - CSS écrit à la main, variables CSS pour le clair/sombre, aucun framework CSS.
-- JS sans dépendance (ou htmx), sans étape de build, embarqué. Chaque fonction JS dégrade vers un formulaire fonctionnel.
+- htmx (embarqué, sans étape de build) plus JS maison pour ce que htmx ne couvre pas (raccourcis, swipe, `autofocus`, `preload`). Pas de script inline (CSP). Chaque fonction JS dégrade vers un formulaire fonctionnel.
 - Texte uniquement via `T("clé")` (i18n), aucune chaîne en dur dans les templates.
 
 ### 6.2 Comportements JS à reproduire (référence : `src/inc/script.js`)
@@ -243,7 +277,7 @@ Ouvrir/fermer un élément en vue liste ; marquer lu/étoiler sans recharger ; c
 ## 7. Internationalisation
 
 - `internal/i18n/locales/{en,fr,de}.json`, clé → texte. Anglais = langue de référence ; une clé manquante dans une autre langue retombe sur l'anglais.
-- Point de départ : `src/po/messages/{messages.pot,fr.po,de.po}`. Réutiliser les traductions existantes quand le texte est identique ; générer les nouvelles chaînes en fr/de puis les signaler comme **à relire** (liste dans le rapport final).
+- Point de départ : `../kriss_feed/src/po/messages/{messages.pot,fr.po,de.po}`. Réutiliser les traductions existantes quand le texte est identique ; générer les nouvelles chaînes en fr/de puis les signaler comme **à relire** (liste dans le rapport final).
 - Test : chaque clé présente en `en` existe en `fr` et `de`, et réciproquement ; chaque clé utilisée dans un template existe en `en`.
 - Formats de date selon la langue.
 
@@ -251,7 +285,7 @@ Ouvrir/fermer un élément en vue liste ; marquer lu/étoiler sans recharger ; c
 
 ## 8. Sécurité
 
-- Mot de passe : bcrypt (coût ≥ 12) ou argon2id ; comparaison à temps constant.
+- Mot de passe : argon2id (19 MiB, t=2, p=1, sel aléatoire, format PHC) ; comparaison à temps constant.
 - Session : identifiant aléatoire (≥ 128 bits) en base ; cookie `HttpOnly`, `SameSite=Lax`, `Secure` si la requête est en HTTPS (via `X-Forwarded-Proto` **uniquement** si l'option « faire confiance au proxy » est active) ; expiration après **3600 s** d'inactivité ; « rester connecté » = session persistante de **30 jours**, renouvelée à chaque visite. Régénérer l'identifiant à la connexion.
 - CSRF : jeton par session, vérifié sur tout POST.
 - Bannissement : **4** échecs consécutifs pour une même IP → **1800 s** de blocage (message explicite). Identifier l'IP par `RemoteAddr`, ou par `X-Forwarded-For` (première adresse) si l'option « faire confiance au proxy » est active (flag/variable d'environnement, désactivée par défaut).
@@ -277,7 +311,7 @@ Hachage et sessions ; bannissement ; parsing et normalisation de flux (RSS, Atom
 Workflow sur push et PR : lint, tests avec `-race`, build `CGO_ENABLED=0`, build de l'image Docker (sans publication).
 
 ### 9.5 Docker
-Build multi-étapes, image finale minimale (distroless ou scratch avec certificats CA), utilisateur non root, volume pour le répertoire de données, port exposé documenté, `HEALTHCHECK` ou route de santé simple.
+Build multi-étapes (compilation depuis `src/`), image finale `gcr.io/distroless/static:nonroot`, utilisateur non root, volume pour le répertoire de données, port exposé documenté, route `/healthz` et `HEALTHCHECK` via `mw-feed healthcheck` (pas de shell dans l'image).
 
 ---
 
@@ -286,11 +320,11 @@ Build multi-étapes, image finale minimale (distroless ou scratch avec certifica
 Chaque phase se termine par `go vet`, `go test -race ./...` verts et un commit. Une phase n'est terminée que si ses critères d'acceptation sont vérifiés.
 
 **Phase 0 : initialisation**
-Dépôt, `go mod init`, licence GPL v3 (fichier `LICENSE`), README, structure de la section 2, `golangci-lint`, CI minimale, Dockerfile minimal.
+Dépôt, `go mod init` dans `src/`, licence GPL v3 (fichier `LICENSE`), README, structure de la section 2, `golangci-lint`, CI minimale, Dockerfile minimal.
 *Acceptation* : `go build ./...` OK sans CGO ; CI verte ; `docker build` OK.
 
 **Phase 1 : stockage et configuration**
-Migrations SQLite, couche `store`, table `settings` avec les défauts de 1.3, lecture des flags/env.
+Migrations SQLite, couche `store`, ligne unique `settings` avec les défauts de 1.3, lecture des flags/env.
 *Acceptation* : tests de migration sur base vide ; lecture/écriture de chaque réglage ; démarrage sur répertoire de données vide.
 
 **Phase 2 : authentification**
